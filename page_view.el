@@ -265,7 +265,7 @@ START and END specify the region to clear; defaults to the whole buffer."
 
 
 ;;;;;; line-height caching module starts here ;;;;;;;
-;;;;;;
+;;;;;; mostly working, but reflowing while typing is broken
 
 (defun page-view-compute-line-height (&optional line)
   "Compute the visual height of a physical line.
