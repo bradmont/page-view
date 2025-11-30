@@ -379,7 +379,8 @@ LINE defaults to the current line. Uses and updates cached
 
           ;; Starting cumulative height.
           (let ((cumulative-height (or (get-text-property (point) 'page-view-cumulative-height)
-                                       0)))
+                                       0 ))) ;; we are on a cached line;
+            ;; if no cumulative-height is stored, we're on line 1
             ;; Add this line's height if necessary.
             (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
             ;(put-text-property (point) (1+ (point))
@@ -406,9 +407,10 @@ LINE defaults to the current line. Uses and updates cached
 
       ;; Cache already valid for this line: just fetch.
       (progn
-        (unless (= (line-number-at-pos) line)
+        (unless (= (line-number-at-pos) line);; goto line unless there already
           (goto-char (point-min))
-          (forward-line (1- line)))
+          (forward-line (1- line))) 
+
         (beginning-of-line)
         (or (get-text-property (point) 'page-view-cumulative-height)
             0)))))
