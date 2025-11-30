@@ -289,14 +289,6 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
     )
   )
 
-(defun visual-line-number-at-pos ()
-  "Get the visual-line line number at point
-thanks to abo-abo at https://emacs.stackexchange.com/questions
-/18118/how-to-get-visual-line-number-at-pos"
-  (interactive)
-  (count-screen-lines
-   (point-min)
-   (save-excursion (beginning-of-visual-line) (point))))
 
 (defun page-view-clear (&optional start end)
   "Remove all page-break overlays created by `page-view-apply-pagebreak`.
