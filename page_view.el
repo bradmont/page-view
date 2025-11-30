@@ -18,6 +18,43 @@
 
 (require 'olivetti)
 
+(defvar page-view-debug-flag 1
+  "If non-nil, show debug overlays for line heights and cumulative heights.")
+
+(defun page-view-debug-overlay (height cumulative-height)
+  "Display a small overlay in the left fringe showing HEIGHT and
+CUMULATIVE-HEIGHT for the current line."
+  (message "line %d: height: %d ch: %d" (line-number-at-pos) height cumulative-height)
+  (let* ((start (save-excursion (beginning-of-line) (point)))
+         (ov (make-overlay start (max (1+ start) (point-max))))
+         (label (format "%d/%d" height cumulative-height)))
+
+    (remove-overlays (max (1- start) (point-min))
+                     (point-max)
+                     'page-view-debug t)
+    ;; store overlay so it doesn't get GC'd, optionally buffer-local list
+    (overlay-put ov 'page-view-debug t)
+    ;; after-string can be displayed in the left fringe
+    (overlay-put ov 'before-string
+                 (propertize label
+                             'display '((margin left-margin))
+                             'face '(:foreground "red" :weight bold)))))
+
+
+(defun remove-debug-overlays()
+  (interactive)
+    (remove-overlays (point-min)
+                     (point-max)
+                     'page-view-debug t)
+    )
+
+(defun maybe-page-view-debug (height cumulative)
+  "Emit a debug overlay call if `page-view-debug-flag` is non-nil."
+  (message "maybe debug")
+  (when page-view-debug-flag
+     (page-view-debug-overlay height cumulative)))
+
+
 (defun page-view-setup()
   (interactive)
 
