@@ -394,6 +394,26 @@ If no cached value exists, compute and store it for the current line."
         ;; compute, store, and return
         (page-view-set-line-height)))))
 
+(defun page-view--goto-end-of-cache()
+  "Go to the last physical line with valid cached values. If there is no
+cache, goto line 1"
+
+  (if (= (line-number-at-pos) page-view-cache-invalid-from)
+          ;; Only traverse buffer if we're not already on the first invalid line.
+      (if (> (line-number-at-pos) 1) ; move back to last valid line
+          (forward-line -1)
+        (progn ;; at line 1; calculate & store its height
+          (page-view-set-line-height)
+          )
+        )
+    (progn
+      ;; otherwise move forward from the beginning
+      (goto-char (point-min))
+      (forward-line (- page-view-cache-invalid-from 2))) ; last valid line
+    )
+  (line-number-at-pos)
+  )
+
 (defun page-view-get-cumulative-height (&optional line)
   "Return the cumulative visual height up to LINE.
 LINE defaults to the current line. Uses and updates cached
@@ -405,30 +425,21 @@ LINE defaults to the current line. Uses and updates cached
     (setq page-view-cache-invalid-from 1))
 
   (save-excursion
-    (if (<= page-view-cache-invalid-from line)
-        ;; Cache is incomplete; compute from the first invalid line up to LINE.
+    (if (>= line page-view-cache-invalid-from ) ; cache invalid here
+        ;; compute from the first invalid line up to LINE.
         (progn
-          ;; Only navigate if we're not already on the first invalid line.
-          (unless (= (line-number-at-pos) page-view-cache-invalid-from)
-            (goto-char (point-min))
-            (forward-line (1- (- page-view-cache-invalid-from 1))))
+          (page-view--goto-end-of-cache)
           (beginning-of-line)
 
+        (message "stored cumulative-height: %d" (or (get-text-property (point) 'page-view-cumulative-height) -1))
           ;; Starting cumulative height.
           (let ((cumulative-height (or (get-text-property (point) 'page-view-cumulative-height)
                                        0 ))) ;; we are on a cached line;
+
+            (message "letted cumulative-height: %d" cumulative-height)
             ;; if no cumulative-height is stored, we're on line 1
             ;; Add this line's height if necessary.
-            (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
-            ;(put-text-property (point) (1+ (point))
-            (put-text-property (point) (min (1+ (point)) (point-max)) ;; if we're on a
-                               ;; final, empty line, we're at point-max and can't set
-                               ;; the property past the end of the buffer. In this case
-                               ;; put-text-property will silently do nothing. We won't
-                               ;; cache anything for this line, so our getter will call
-                               ;; down to page-view-compute-line-height which will return
-                               ;; a default value of 1.
-                               'page-view-cumulative-height cumulative-height)
+
 
             ;; Walk forward until reaching the requested line.
             (while (< (line-number-at-pos) line)
@@ -437,11 +448,19 @@ LINE defaults to the current line. Uses and updates cached
               (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
               (maybe-page-view-debug (page-view-get-line-height) cumulative-height)
 
-            (put-text-property (point) (min (1+ (point)) (point-max)) ;; see above
-                                 'page-view-cumulative-height cumulative-height))
+              (message "setting cumulative-height: %d" cumulative-height)
+                                        ;(put-text-property (point) (1+ (point))
+              (put-text-property (point) (min (1+ (point)) (point-max)) ;; if we're on a
+                                 ;; final, empty line, we're at point-max and can't set
+                                 ;; the property past the end of the buffer. In this case
+                                 ;; put-text-property will silently do nothing. We won't
+                                 ;; cache anything for this line, so our getter will call
+                                 ;; down to page-view-compute-line-height which will return
+                                 ;; a default value of 1.
+                                 'page-view-cumulative-height cumulative-height)
 
-            ;; Update invalid-from pointer.
-            (setq page-view-cache-invalid-from (1+ line))
+              ;; Update invalid-from pointer.
+            (setq page-view-cache-invalid-from (1+ line)))
             cumulative-height))
 
       ;; Cache already valid for this line: just fetch.
