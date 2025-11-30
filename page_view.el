@@ -208,24 +208,13 @@ CUMULATIVE-HEIGHT for the current line."
    (window-end (selected-window) t)))
 
 
+
 (defun page-view--reflow-screen (start end)
   "Apply pagebreaks for the region between START and END buffer positions."
-  (page-view-clear start end)
-  (let* ((start-line (line-number-at-pos start) )
-         (start-line-visual (page-view-get-cumulative-height start-line ))
-         (end-line (line-number-at-pos end))
-         (end-line-visual (page-view-get-cumulative-height end-line))
-         (visual-lines-per-page page-view-lines-per-page)
-         (target-line-visual (- end-line-visual (% end-line-visual visual-lines-per-page)))
-         )
-    (when (> target-line-visual start-line-visual)
-      (save-excursion
+  ;; with our cache code adding pagebreaks as it goes, we shoud just be
+  ;; able to call the cache for end line...
+  (page-view-get-cumulative-height (line-number-at-pos end)))
 
-        (goto-char (point-min))
-        (forward-line (1- start-line)) ;; start-line may be before visible region
-        (line-move-visual (- target-line-visual start-line-visual))
-        (let ((page (/ target-line-visual visual-lines-per-page)))
-          (page-view-apply-pagebreak page))))))
 (defun page-view-goto-visual-line (visual-line)
   ;; go forward by physical lines until we pass visual-line
   (message "goto-visual-line %d from line %d" visual-line (line-number-at-pos))
