@@ -197,7 +197,25 @@
 ;; A buffer-local hash: page-number -> overlay
 (defvar-local page-view-overlays (make-hash-table))
 
-(defun page-view-apply-pagebreak (page-number &optional height)
+
+(defun page-view-maybe-apply-pagebreak (cumulative-height line-height)
+  "Check if we need to apply a pagebreak here, between CUMULATIVE-HEIGHT and
+CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
+  (message "maybe-apply-pagebreak(%d %d)" cumulative-height line-height)
+
+  ;; logic: if the end of our previous physical line is on a different page
+  ;; than the end of this phyical line, there's a page break here
+  (let* ((previous-visual-line cumulative-height ) 
+         (last-line (+ cumulative-height line-height)) 
+         (previous-page (/ previous-visual-line page-view-lines-per-page))
+         (this-page (/ last-line page-view-lines-per-page)))
+    (if (> this-page previous-page)
+        (let* ((target-visual-line (* this-page page-view-lines-per-page)))
+
+      (page-view-apply-pagebreak this-page target-visual-line)))))
+
+
+(defun page-view-apply-pagebreak (page-number &optional target-line)
   "Insert a visual page break below the current line.
 PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (default 3)."
   (interactive "nPage number: \nP")
