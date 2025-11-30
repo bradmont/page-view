@@ -396,7 +396,9 @@ LINE defaults to the current line. Uses and updates cached
             ;; Walk forward until reaching the requested line.
             (while (< (line-number-at-pos) line)
               (forward-line 1)
+              (page-view-maybe-apply-pagebreak cumulative-height (page-view-get-line-height))
               (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
+              (maybe-page-view-debug (page-view-get-line-height) cumulative-height)
 
             (put-text-property (point) (min (1+ (point)) (point-max)) ;; see above
                                  'page-view-cumulative-height cumulative-height))
