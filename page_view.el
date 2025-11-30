@@ -226,6 +226,24 @@ CUMULATIVE-HEIGHT for the current line."
         (line-move-visual (- target-line-visual start-line-visual))
         (let ((page (/ target-line-visual visual-lines-per-page)))
           (page-view-apply-pagebreak page))))))
+(defun page-view-goto-visual-line (visual-line)
+  ;; go forward by physical lines until we pass visual-line
+  (message "goto-visual-line %d from line %d" visual-line (line-number-at-pos))
+  (while (and
+          (< (line-number-at-pos) (line-number-at-pos (point-max)) )
+          (< (page-view-get-cumulative-height) visual-line))
+    (forward-line 1))
+
+  (message "forward to line %d" (line-number-at-pos))
+  ;; go back to the physical line at or before visual-line
+  (while (and
+          (> (line-number-at-pos) (line-number-at-pos (point-min)) )
+          (> (page-view-get-cumulative-height) visual-line))
+    (forward-line -1))
+  (message "backward to line %d" (line-number-at-pos))
+  (message "boop")
+  (message "current line: %d cumulative height: %d "  (line-number-at-pos) (page-view-get-cumulative-height))
+  (line-move-visual (- visual-line (page-view-get-cumulative-height))))
 
 (defun page-view--on-scroll (window display-start)
   "Hook function for `window-scroll-functions` to apply pagebreaks."
