@@ -18,7 +18,7 @@
 
 (require 'olivetti)
 
-(defvar page-view-debug-flag t
+(defvar page-view-debug-flag nil
   "If non-nil, show debug overlays for line heights and cumulative heights.")
 
 (defun page-view-debug-overlay (height cumulative-height)
@@ -167,7 +167,7 @@ CUMULATIVE-HEIGHT for the current line."
   ))
 
 
-(defvar page-view-lines-per-page 30
+(defvar page-view-lines-per-page 36
   "Approximate number of lines per page for page breakinsertion.")
 
 
