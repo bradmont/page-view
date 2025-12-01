@@ -18,7 +18,7 @@
 
 (require 'olivetti)
 
-(defvar page-view-debug-flag 1
+(defvar page-view-debug-flag t
   "If non-nil, show debug overlays for line heights and cumulative heights.")
 
 (defun page-view-debug-overlay (height cumulative-height)
@@ -167,7 +167,7 @@ CUMULATIVE-HEIGHT for the current line."
   ))
 
 
-(defvar page-view-lines-per-page 36
+(defvar page-view-lines-per-page 30
   "Approximate number of lines per page for page breakinsertion.")
 
 
@@ -191,6 +191,10 @@ CUMULATIVE-HEIGHT for the current line."
       )
         (remove-hook 'window-scroll-functions #'page-view--on-scroll t)
         (jit-lock-unregister #'page-view-jit-reflow)
+
+        (if page-view-debug-flag 
+          (page-view-remove-debug-overlays)
+          )
     (page-view-clear)))
 
 
@@ -262,19 +266,26 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
 (defun page-view-apply-pagebreak (page-number &optional target-line)
   "Insert a visual page break below the current line.
 PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (default 3)."
+  ; TODO use a configurable function for formatting page-break text
+  ; TODO use a configurable function for formatting page-break style
   (interactive "nPage number: \nP")
   (beginning-of-visual-line)
-  (let* ((height (or height 3))
+  (let* ((height 3)
          (ov (gethash page-number page-view-overlays))
-         (label (format "Page %d" page-number) )
-         (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) )
-         )
+         (label
+          (if page-view-debug-flag
+              (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-line)
+            (format "Page %d" page-number )))
+         (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
+
+    (if page-view-debug-flag
+        (message "page-break : %s" label))
 
     (if ov
         (move-overlay ov (point) (point))
-    )
+                                        ;(delete-overlay ov)
+      )
     (unless ov
-
 
       (setq ov (make-overlay (point) (point)))
       (puthash page-number ov page-view-overlays)
@@ -290,11 +301,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                              (propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height)))
                              )
                             'face `(:family "monospace" :background ,(face-background 'tab-bar) :foreground ,(face-foreground 'default) :weight bold :slant normal )
-                            )))
-      )
-    
-    )
-  )
+                            ))))))
 
 
 (defun page-view-clear (&optional start end)
