@@ -223,21 +223,16 @@ CUMULATIVE-HEIGHT for the current line."
 
 (defun page-view-goto-visual-line (visual-line)
   ;; go forward by physical lines until we pass visual-line
-  (message "goto-visual-line %d from line %d" visual-line (line-number-at-pos))
   (while (and
           (< (line-number-at-pos) (line-number-at-pos (point-max)) )
           (< (page-view-get-cumulative-height) visual-line))
     (forward-line 1))
 
-  (message "forward to line %d" (line-number-at-pos))
   ;; go back to the physical line at or before visual-line
   (while (and
           (> (line-number-at-pos) (line-number-at-pos (point-min)) )
           (> (page-view-get-cumulative-height) visual-line))
     (forward-line -1))
-  (message "backward to line %d" (line-number-at-pos))
-  (message "boop")
-  (message "current line: %d cumulative height: %d "  (line-number-at-pos) (page-view-get-cumulative-height))
   (line-move-visual (- visual-line (page-view-get-cumulative-height))))
 
 (defun page-view--on-scroll (window display-start)
@@ -251,7 +246,6 @@ CUMULATIVE-HEIGHT for the current line."
 (defun page-view-maybe-apply-pagebreak (cumulative-height line-height)
   "Check if we need to apply a pagebreak here, between CUMULATIVE-HEIGHT and
 CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
-  (message "maybe-apply-pagebreak(%d %d)" cumulative-height line-height)
 
   ;; logic: if the end of our previous physical line is on a different page
   ;; than the end of this phyical line, there's a page break here
@@ -284,9 +278,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
         (message "page-break : %s" label))
 
     (if ov
-        (move-overlay ov (point) (point))
-                                        ;(delete-overlay ov)
-      )
+        (move-overlay ov (point) (point)))
     (unless ov
 
       (setq ov (make-overlay (point) (point)))
@@ -313,7 +305,6 @@ START and END specify the region to clear; defaults to the whole buffer."
   (remove-overlays (or start (point-min))
                    (or end   (point-max))
                    'pagebreak t))
-
 
 
 (defun page-view-reset()
@@ -441,12 +432,10 @@ LINE defaults to the current line. Uses and updates cached
           (page-view--goto-end-of-cache)
           (beginning-of-line)
 
-        (message "stored cumulative-height: %d" (or (get-text-property (point) 'page-view-cumulative-height) -1))
           ;; Starting cumulative height.
           (let ((cumulative-height (or (get-text-property (point) 'page-view-cumulative-height)
                                        0 ))) ;; we are on a cached line;
 
-            (message "letted cumulative-height: %d" cumulative-height)
             ;; if no cumulative-height is stored, we're on line 1
             ;; Add this line's height if necessary.
 
@@ -458,7 +447,6 @@ LINE defaults to the current line. Uses and updates cached
               (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
               (maybe-page-view-debug (page-view-get-line-height) cumulative-height)
 
-              (message "setting cumulative-height: %d" cumulative-height)
                                         ;(put-text-property (point) (1+ (point))
               (put-text-property (point) (min (1+ (point)) (point-max)) ;; if we're on a
                                  ;; final, empty line, we're at point-max and can't set
