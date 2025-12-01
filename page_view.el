@@ -41,7 +41,7 @@ CUMULATIVE-HEIGHT for the current line."
                              'face '(:foreground "red" :weight bold)))))
 
 
-(defun remove-debug-overlays()
+(defun page-view-remove-debug-overlays()
   (interactive)
     (remove-overlays (point-min)
                      (point-max)
@@ -478,10 +478,12 @@ LINE defaults to the current line. Uses and updates cached
         (beginning-of-line)
         (or (get-text-property (point) 'page-view-cumulative-height)
             0)))))
+
 (defun page-view-print-line-heights-and-cumulative ()
   "Print a list of (line-height . cumulative-height) for all lines in the buffer.
 Lines without cached heights show nil for that component."
   (interactive)
+  (message "Cache invalid from: %d" page-view-cache-invalid-from)
   (let (results cumulative)
     (setq cumulative 0)
     (save-excursion
