@@ -202,16 +202,17 @@ CUMULATIVE-HEIGHT for the current line."
         (page-view-setup)
         (my-olivetti-fix-mode 1)
         (page-view-jit-reflow  (window-start) (window-end))
-      )
-        (remove-hook 'after-change-functions #'page-view-handle-change t)
-        (remove-hook 'window-scroll-functions #'page-view--on-scroll t)
-        (jit-lock-unregister #'page-view-jit-reflow)
+        )
+    (progn
+      (remove-hook 'after-change-functions #'page-view-handle-change t)
+      (remove-hook 'window-scroll-functions #'page-view--on-scroll t)
+      (jit-lock-unregister #'page-view-jit-reflow)
 
-        (if page-view-debug-flag 
+      (if page-view-debug-flag 
           (page-view-remove-debug-overlays)
-          )
+        )
 
-        (page-view-reset)))
+      (page-view-reset))))
 
 
 (defun page-view-jit-reflow (start end)
