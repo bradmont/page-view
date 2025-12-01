@@ -256,7 +256,10 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
     (if (> this-page previous-page)
         (let* ((target-visual-line (* this-page page-view-lines-per-page)))
 
-      (page-view-apply-pagebreak this-page target-visual-line)))))
+          
+          (save-excursion
+            (line-move-visual (- target-visual-line cumulative-height) )
+            (page-view-apply-pagebreak this-page target-visual-line))))))
 
 
 (defun page-view-apply-pagebreak (page-number &optional target-line)
