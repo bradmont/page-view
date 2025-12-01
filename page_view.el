@@ -50,7 +50,6 @@ CUMULATIVE-HEIGHT for the current line."
 
 (defun maybe-page-view-debug (height cumulative)
   "Emit a debug overlay call if `page-view-debug-flag` is non-nil."
-  (message "maybe debug")
   (when page-view-debug-flag
      (page-view-debug-overlay height cumulative)))
 
@@ -366,7 +365,6 @@ Set by `page-view-handle-change` and used for incremental recomputation.")
   ;; Remove the 'line-height property from the changed region
   ;; 
   
-  (message "page-view-handle-change %s %s %s" beg end _len)
   (remove-text-properties beg (1+ end) '(page-view-line-height nil))
   ;; Optionally track the first invalidated line for incremental recalculation
   (let ((line (line-number-at-pos beg)))
