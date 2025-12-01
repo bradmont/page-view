@@ -185,10 +185,12 @@ CUMULATIVE-HEIGHT for the current line."
         (jit-lock-register #'page-view-jit-reflow)
         (add-hook 'window-scroll-functions #'page-view--on-scroll nil t)
 
+        (add-hook 'after-change-functions #'page-view-handle-change nil t)
         (page-view-setup)
         (my-olivetti-fix-mode 1)
         (page-view-jit-reflow  (window-start) (window-end))
       )
+        (remove-hook 'after-change-functions #'page-view-handle-change t)
         (remove-hook 'window-scroll-functions #'page-view--on-scroll t)
         (jit-lock-unregister #'page-view-jit-reflow)
 
@@ -372,6 +374,9 @@ Set by `page-view-handle-change` and used for incremental recomputation.")
 (defun page-view-handle-change (beg end _len)
   "Invalidate cached line-height properties for lines touched by the change."
   ;; Remove the 'line-height property from the changed region
+  ;; 
+  
+  (message "page-view-handle-change %s %s %s" beg end _len)
   (remove-text-properties beg (1+ end) '(page-view-line-height nil))
   ;; Optionally track the first invalidated line for incremental recalculation
   (let ((line (line-number-at-pos beg)))
@@ -380,7 +385,6 @@ Set by `page-view-handle-change` and used for incremental recomputation.")
               (min page-view-cache-invalid-from line)
             line))))
 
-(add-hook 'after-change-functions #'page-view-handle-change nil t)
 
 (defun page-view-get-line-height (&optional line)
   "Return the cached visual height of a physical line.
