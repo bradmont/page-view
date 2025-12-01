@@ -197,7 +197,8 @@ CUMULATIVE-HEIGHT for the current line."
         (if page-view-debug-flag 
           (page-view-remove-debug-overlays)
           )
-    (page-view-clear)))
+
+        (page-view-reset)))
 
 
 (defun page-view-jit-reflow (start end)
@@ -308,13 +309,11 @@ START and END specify the region to clear; defaults to the whole buffer."
 
 
 (defun page-view-reset()
+  "Hard reset: wipe overlays, metadata"
   (interactive)
   (setq page-view-overlays (make-hash-table))
+  (page-view-clear-all-line-metadata)
   (page-view-clear)
-  (if page-view-mode
-      (page-view-mode 0)
-      (page-view-mode)
-      )
 )
 
 
