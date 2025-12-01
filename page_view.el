@@ -174,6 +174,20 @@ CUMULATIVE-HEIGHT for the current line."
 
 
 
+(define-minor-mode page-view-debug-mode
+  "Word-processor-like view for Org."
+  :init-value nil
+  :lighter "PVDebug"
+  (if page-view-debug-mode
+      (progn
+        (setq page-view-debug-flag t)
+        (page-view-mode 1)
+        )
+    (progn
+      (page-view-mode -1)
+      (setq page-view-debug-flag nil)
+      )))
+
 (define-minor-mode page-view-mode
   "Word-processor-like view for Org."
   :init-value nil
