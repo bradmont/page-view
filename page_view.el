@@ -249,7 +249,7 @@ CUMULATIVE-HEIGHT for the current line."
           (> (line-number-at-pos) (line-number-at-pos (point-min)) )
           (> (page-view-get-cumulative-height) visual-line))
     (forward-line -1))
-  (line-move-visual (- visual-line (page-view-get-cumulative-height))))
+  (line-move-visual (- visual-line (page-view-get-cumulative-height) 1 )))
 
 (defun page-view--on-scroll (window display-start)
   "Hook function for `window-scroll-functions` to apply pagebreaks."
