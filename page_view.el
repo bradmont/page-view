@@ -90,6 +90,7 @@ CUMULATIVE-HEIGHT for the current line."
          ;; (fringe-bg (color-lighten-name (face-background 'tab-bar 10)))
          ;; (fringe-bg "#CCC")
          ) ;; darken by 10%
+    ;(set-face-attribute 'olivetti-fringe nil :background (face-background 'tab-bar ))
     (set-face-attribute 'olivetti-fringe nil :background fringe-bg)
     (dolist (face '(flycheck-fringe-error
                 flycheck-fringe-warning
@@ -114,8 +115,8 @@ CUMULATIVE-HEIGHT for the current line."
   (interactive)
   (when olivetti-mode
     ;; Olivetti fringe itself
-    (set-face-attribute 'olivetti-fringe nil :inherit 'my-olivetti-fringe)
     ;; update the root face
+    (set-face-attribute 'my-olivetti-fringe nil :inherit 'olivetti-fringe)
     (set-face-attribute 'my-olivetti-fringe nil :background (face-background 'tab-bar nil t))
     ;; Flycheck and diff-hl fringes
     (dolist (face '(flycheck-fringe-error
