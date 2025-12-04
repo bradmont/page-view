@@ -13,13 +13,16 @@
 
 ;;; Code:
 ;;;
-;;; TODO :
-;;; * [ ] optimize olivetti-fix...
 
 (require 'olivetti)
 
 (defvar page-view-debug-flag nil
   "If non-nil, show debug overlays for line heights and cumulative heights.")
+
+(defvar page-view-lines-per-page 36
+  "Number of lines per page for page breakinsertion. Approximates a word
+processer Times New Roman 12 point, 1.5 spacing.")
+;; TODO: calculate this based on face styles; make face styles configurable
 
 (defun page-view-debug-overlay (height cumulative-height)
   "Display a small overlay in the left fringe showing HEIGHT and
@@ -42,6 +45,7 @@ CUMULATIVE-HEIGHT for the current line."
 
 
 (defun page-view-remove-debug-overlays()
+  "Clear overlays from page-view-debug-mode"
   (interactive)
     (remove-overlays (point-min)
                      (point-max)
@@ -55,13 +59,13 @@ CUMULATIVE-HEIGHT for the current line."
 
 
 (defun page-view-setup()
+  "Setup the display visuals. We assume olivetti mode, but it shouldn't be
+necessary. We haven't tested with visual-fill-column or other packages
+though. Overrid or advise this function to adjust."
   (interactive)
-
   ;; use margins and  fringes
   (setq olivetti-style 'fancy)
   (olivetti-mode)
-
-  (org-indent-mode -1)
 
   ;; we're emulating Times New Roman 12 at 1.5 spacing in a word processor.
   ;; eventually these ought to be configurable
@@ -70,54 +74,24 @@ CUMULATIVE-HEIGHT for the current line."
   
   (face-remap-add-relative 'default `(:family "Times New Roman"))
   
- (setup-olivetti-faces) 
-
+ (setup-olivetti-fringes) 
   
- ;; disable troublesome fringe modes TODO remove?
+  (org-indent-mode -1)
   (diff-hl-mode -1)
   (hl-line-mode -1)
   (redraw-display)
 )
 
-(defun old-setup-olivetti-faces  ()
-    (interactive)
-    (message "setup-olivetti-faces")
-  
-  ;(require 'color)  ;; for color-darken-name
-    (when olivetti-mode
-  (let* ((frame-bg (face-background 'default nil))  ;; current frame background
-         (fringe-bg (face-background 'tab-bar ))
-         ;; (fringe-bg (color-lighten-name (face-background 'tab-bar 10)))
-         ;; (fringe-bg "#CCC")
-         ) ;; darken by 10%
-    ;(set-face-attribute 'olivetti-fringe nil :background (face-background 'tab-bar ))
-    (set-face-attribute 'olivetti-fringe nil :background fringe-bg)
-    (dolist (face '(flycheck-fringe-error
-                flycheck-fringe-warning
-                flycheck-fringe-info
-                diff-hl-insert
-                diff-hl-delete
-                diff-hl-change
-                ))
-    ;(set-face-background face (face-background 'olivetti-fringe))
-    (face-remap-add-relative face `(:background ,fringe-bg))
-  ))))
 
-;; 1. Define a persistent fringe face
-(defface my-olivetti-fringe
-  `((t :background ,(face-background 'tab-bar)))
-  "Fringe face for Olivetti mode."
-  :group 'olivetti)
 
-;; 2. Apply it to Olivetti and related faces
-(defun setup-olivetti-faces ()
-  "Set up fringe faces for Olivetti mode."
+(defun setup-olivetti-fringes ()
+  "Set up fringe backgrounds for other modes that use them to follow
+the Olivetti fringe style."
   (interactive)
   (when olivetti-mode
     ;; Olivetti fringe itself
     ;; update the root face
-    (set-face-attribute 'my-olivetti-fringe nil :inherit 'olivetti-fringe)
-    (set-face-attribute 'my-olivetti-fringe nil :background (face-background 'tab-bar nil t))
+    (set-face-attribute 'olivetti-fringe nil :background (face-background 'tab-bar nil t))
     ;; Flycheck and diff-hl fringes
     (dolist (face '(flycheck-fringe-error
                     flycheck-fringe-warning
@@ -125,58 +99,11 @@ CUMULATIVE-HEIGHT for the current line."
                     diff-hl-insert
                     diff-hl-delete
                     diff-hl-change))
-      (set-face-attribute face nil :inherit 'my-olivetti-fringe :background (face-background 'tab-bar nil t)))))
-
-(defun force-olivetti-faces  ()
-    (interactive)
-    (message "setup-olivetti-faces")
-    (log-messages-to-file "~/Sync/Notes/styles_log.txt")
-  
-    (when olivetti-mode
-  (let* ((frame-bg (face-background 'default nil))  ;; current frame background
-         (fringe-bg (face-background 'tab-bar ))
-         ;; (fringe-bg (color-lighten-name (face-background 'tab-bar 10)))
-         ;; (fringe-bg "#CCC")
-         ) ;; darken by 10%
-    (set-face-attribute 'olivetti-fringe nil :background fringe-bg)
-    (dolist (face '(flycheck-fringe-error
-                flycheck-fringe-warning
-                flycheck-fringe-info
-                diff-hl-insert
-                diff-hl-delete
-                diff-hl-change
-                ))
-    ;(set-face-background face (face-background 'olivetti-fringe))
-    (face-remap-add-relative face `(:background ,fringe-bg))
-  ))))
-
-
-(define-minor-mode my-olivetti-fix-mode
-  "Reapply Olivetti faces after theme changes or buffer redraws."
-  :global t
-  (if my-olivetti-fix-mode
-      (progn
-        (add-hook 'after-load-theme-hook #'force-olivetti-faces)
-        ;(add-hook 'window-configuration-change-hook #'setup-olivetti-faces)
-        ;(add-hook 'buffer-list-update-hook #'setup-olivetti-faces)
-
-        )
-    (remove-hook 'after-load-theme-hook #'force-olivetti-faces)
-    ;(remove-hook 'window-configuration-change-hook #'setup-olivetti-faces)
-    ;(remove-hook 'buffer-list-update-hook #'setup-olivetti-faces)
-  ))
-
-
-(defvar page-view-lines-per-page 36
-  "Approximate number of lines per page for page breakinsertion.")
-
-
-
-
+      (set-face-attribute face nil :inherit 'olivetti-fringe ))))
 
 
 (define-minor-mode page-view-debug-mode
-  "Word-processor-like view for Org."
+  "page-view-mode display debug info like cached line heights"
   :init-value nil
   :lighter "PVDebug"
   (if page-view-debug-mode
@@ -238,6 +165,9 @@ CUMULATIVE-HEIGHT for the current line."
   (page-view-get-cumulative-height (line-number-at-pos end)))
 
 (defun page-view-goto-visual-line (visual-line)
+  "Use the page-view cache to jump to a visual line. DO NOT USE
+in functions that get called repeatedly, it'll be inefficient. Works
+best if (point) is already relatively near the target visual-line."
   ;; go forward by physical lines until we pass visual-line
   (while (and
           (< (line-number-at-pos) (line-number-at-pos (point-max)) )
@@ -334,7 +264,7 @@ START and END specify the region to clear; defaults to the whole buffer."
   (page-view-clear)
 )
 
-
+
 ;;;;;; line-height caching module starts here ;;;;;;;
 ;;;;;; mostly working, but reflowing while typing is broken
 
