@@ -10,7 +10,20 @@ implemented as an overlay. It currently applies styling and page sizes
 that approximate a letter-sized page using Times New Roman 12 point, at 1.5
 spacing. The package is built to work on top of [[https://github.com/rnkn/olivetti][olivetti-mode]], but it should
 be able to function without it with minimal changes.
-[[file:page-view.png]]
+[[file:page_view.gif]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 * Installation  
   Clone or copy the file into your load path:
