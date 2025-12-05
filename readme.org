@@ -1,0 +1,59 @@
+#+title: Readme
+Page View for Org Mode  
+  
+
+* Overview   
+This is a package meant to emulate the visual, page-based layout of a word
+processor like LibreOffice Write or Microsoft Word in org-mode. Mainly, it
+divides your document into pages, divided by a visual pagebreak/footer,
+implemented as an overlay. It currently applies styling and page sizes
+that approximate a letter-sized page using Times New Roman 12 point, at 1.5
+spacing. The package is built to work on top of [[https://github.com/rnkn/olivetti][olivetti-mode]], but it should
+be able to function without it with minimal changes.
+[[file:page-view.png]]
+
+* Installation  
+  Clone or copy the file into your load path:
+
+#+begin_src emacs-lisp  
+(require 'page-view)  
+#+end_src
+
+  
+
+* Usage  
+  Activate the mode in an Org buffer:
+
+#+begin_src emacs-lisp  
+(page-view-mode)  
+#+end_src
+
+To toggle debugging overlays:
+
+#+begin_src emacs-lisp  
+(page-view-debug-mode)  
+#+end_src
+
+
+* Incremental Updates  
+A small cache-invalidating mechanism ensures that only affected lines are recomputed after edits.  
+Pagination updates occur:
+
+- during jit-lock redisplay,
+  
+- after buffer changes,
+  
+- and during window scrolling.
+  
+
+* Configuration  
+You can override or advise the function =page-view-setup= to change font parameters; if you're using olivetti-mode, =olivetti-body-width= determines the character width of the page; =page-view-lines-per-page= determines the size of a page.
+  
+Future versions aim to make these parameters fully customizable.
+
+** Known Limitations
+
+- Reflow while typing is functional but still rough in some cases 
+  
+- Tested primarily with Org Mode and =olivetti-mode=.
+  
