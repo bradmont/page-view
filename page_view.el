@@ -128,7 +128,6 @@ the Olivetti fringe style."
 
         (add-hook 'after-change-functions #'page-view-handle-change nil t)
         (page-view-setup)
-        (my-olivetti-fix-mode 1)
         (page-view-jit-reflow  (window-start) (window-end))
         )
     (progn
