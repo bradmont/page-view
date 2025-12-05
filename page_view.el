@@ -1,5 +1,4 @@
-;;; ../../Sync/config/.config/doom/page_view.el -*- lexical-binding: t; -*-
-;;; page-view.el --- Simple page view helpers -*- lexical-binding: t; -*-
+;;; page-view.el --- Simple page view -*- lexical-binding: t; -*-
 
 ;; Author: Brad Stewart
 ;; Version: 0.1
@@ -9,7 +8,13 @@
 
 ;;; Commentary:
 
-;; Brief description of what this package does.
+;; This is a package meant to emulate the visual, page-based layout of a word
+;; processor like LibreOffice Write or Microsoft Word in org-mode. Mainly, it
+;; divides your document into pages, divided by a visual pagebreak/footer,
+;; implemented as an overlay. It currently applies styling and page sizes
+;; that approximate a letter-sized page using Times New Roman 12 point, at 1.5
+;; spacing. The package is built to work on top of olivetti-mode, but it should
+;; be able to function without it with minimal changes.
 
 ;;; Code:
 ;;;
@@ -49,10 +54,9 @@ CUMULATIVE-HEIGHT for the current line."
   (interactive)
     (remove-overlays (point-min)
                      (point-max)
-                     'page-view-debug t)
-    )
+                     'page-view-debug t))
 
-(defun maybe-page-view-debug (height cumulative)
+(defun page-view-maybe-debug (height cumulative)
   "Emit a debug overlay call if `page-view-debug-flag` is non-nil."
   (when page-view-debug-flag
      (page-view-debug-overlay height cumulative)))
@@ -79,8 +83,7 @@ though. Overrid or advise this function to adjust."
   (org-indent-mode -1)
   (diff-hl-mode -1)
   (hl-line-mode -1)
-  (redraw-display)
-)
+  (redraw-display))
 
 
 
@@ -128,6 +131,7 @@ the Olivetti fringe style."
 
         (add-hook 'after-change-functions #'page-view-handle-change nil t)
         (page-view-setup)
+        (page-view-reset)
         (page-view-jit-reflow  (window-start) (window-end))
         )
     (progn
@@ -391,7 +395,7 @@ LINE defaults to the current line. Uses and updates cached
               (forward-line 1)
               (page-view-maybe-apply-pagebreak cumulative-height (page-view-get-line-height))
               (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
-              (maybe-page-view-debug (page-view-get-line-height) cumulative-height)
+              (page-view-maybe-debug (page-view-get-line-height) cumulative-height)
 
                                         ;(put-text-property (point) (1+ (point))
               (put-text-property (point) (min (1+ (point)) (point-max)) ;; if we're on a
