@@ -74,7 +74,9 @@
     (goto-char (point-min))
     (let ((fn-index 1)) ;; global counter
       ;; search the whole buffer
-      (while (re-search-forward "\\[\\(?:fn::\\|cite:\\)\\([^]]+\\)\\]" nil t)
+      (while (re-search-forward
+              "\\[\\(?:fn::\\|cite:\\)\\(\\(?:[^][]\\|\\[[^]]*\\]\\)+\\)\\]" nil t)
+
         (let* ((content (match-string 1))
                (beg (match-beginning 0))
                (end (match-end 0))
@@ -129,11 +131,7 @@
   "Edit the footnote/citation text at markers in a popup buffer."
   (interactive)
   (let ((content (buffer-substring-no-properties beg-marker end-marker)))
-    (let ((edited (with-temp-buffer-window "*Footnote Edit*" nil nil
-                    (insert content)
-                    (text-mode)
-                    (pop-to-buffer (current-buffer))
-                    (read-from-minibuffer "Edit footnote: " content))))
+    (let ((edited (read-from-minibuffer "Edit footnote: " content)))
       (when edited
         (let ((inhibit-read-only t))
           (delete-region beg-marker end-marker)
