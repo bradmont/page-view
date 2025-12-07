@@ -74,7 +74,13 @@ though. Overrid or advise this function to adjust."
   ;; we're emulating Times New Roman 12 at 1.5 spacing in a word processor.
   ;; eventually these ought to be configurable
   (setq-local olivetti-body-width 69)
-  (setq-local line-spacing 0.6)
+
+  (setq my-line-spacing 8)
+
+  (setq-local default-text-properties
+              `(line-spacing ,my-line-spacing
+                wrap-prefix (space . (:height (,(+ (default-font-height) my-line-spacing))
+                                      :width (0)))))
   
   (face-remap-add-relative 'default `(:family "Times New Roman"))
   
