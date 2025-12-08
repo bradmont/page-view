@@ -19,6 +19,16 @@
 ;;
 ;;; Code:
 
+
+
+(define-minor-mode footnote-mode
+  "Toggle inline footnotes visualization."
+  :lighter " FN"
+  (if footnote-mode
+      (org-inline-fn-visualize)
+    (org-inline-fn-clear)))
+
+
 ;; Face for rendered paragraph-end footnotes
 (defface org-inline-fn-overlay-face
   '((t :height 0.8 :slant normal :inherit shadow))
