@@ -226,6 +226,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
   (beginning-of-visual-line)
   (let* ((height 3)
          (ov (gethash page-number page-view-overlays))
+         (ov-margin (gethash (* -1 page-number) page-view-overlays))
          (label
           (if page-view-debug-flag
               (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-line)
@@ -237,6 +238,9 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
 
     (if ov
         (move-overlay ov (point) (point)))
+
+    (if ov-margin
+        (move-overlay ov-margin (point) (point)))
     (unless ov
 
       (setq ov (make-overlay (point) (point)))
@@ -247,13 +251,49 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                    (concat "\n"
                            (propertize
                             (concat
-                             (propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height)))
+
+                             ;;(propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height)))
+                             ;; shorten for now until I figure out how to make ov-margin tlaler...
                              (make-string pad ?\s)
                              label
                              (propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height)))
                              )
-                            'face `(:family "monospace" :background ,(face-background 'tab-bar) :foreground ,(face-foreground 'default) :weight bold :slant normal )
-                            ))))))
+                            'face `(:family "monospace" :background ,(face-background 'tab-bar)
+                                    :foreground ,(face-foreground 'default)
+                                    :weight bold
+                                    :underline nil
+                                    :slant normal )
+                            ))))
+    (unless ov-margin
+      (setq ov-margin (make-overlay (point) (point)))
+      (puthash (* -1 page-number) ov-margin page-view-overlays)
+      (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
+
+      (overlay-put ov-margin 'before-string
+                   (propertize " "
+                   'display
+                   `((margin left-margin) ,(propertize (make-string olivetti-margin-width ?\s)
+                        'face `(:family "monospace"
+                                ;:width ,olivetti-margin-width
+                                :background ,(face-background 'tab-bar)
+                                :foreground "white"
+                                :underline nil)))
+                               )
+                            )
+
+      (overlay-put ov-margin 'after-string
+                   (propertize " "
+                   'display
+                   `((margin right-margin) ,(propertize (make-string olivetti-margin-width ?\s)
+                        'face `(:family "monospace"
+                                ;:width ,olivetti-margin-width
+                                :background ,(face-background 'tab-bar)
+                                :foreground "white"
+                                :underline nil)))
+                               )
+                            )
+      )
+    ))
 
 
 (defun page-view-clear (&optional start end)
