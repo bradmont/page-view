@@ -35,18 +35,23 @@ CUMULATIVE-HEIGHT for the current line."
   (message "line %d: height: %d ch: %d" (line-number-at-pos) height cumulative-height)
   (let* ((start (save-excursion (beginning-of-line) (point)))
          (ov (make-overlay start (max (1+ start) (point-max))))
-         (label (format "%d/%d" height cumulative-height)))
+         (label (format "%d+%d" cumulative-height height)))
 
     (remove-overlays (max (1- start) (point-min))
                      (point-max)
                      'page-view-debug t)
-    ;; store overlay so it doesn't get GC'd, optionally buffer-local list
     (overlay-put ov 'page-view-debug t)
-    ;; after-string can be displayed in the left fringe
-    (overlay-put ov 'before-string
-                 (propertize label
-                             'display '((margin left-margin))
-                             'face '(:foreground "red" :weight bold)))))
+
+      (overlay-put ov 'before-string
+                   (propertize " "
+                   'display
+                   `((margin left-margin) ,(propertize label
+                        'face `(:family "monospace"
+                                ;:width ,olivetti-margin-width
+                                :foreground "brown"
+                                :underline nil)))
+                               )
+                            )))
 
 
 (defun page-view-remove-debug-overlays()
@@ -258,7 +263,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                              ;; shorten for now until I figure out how to make ov-margin tlaler...
                              (make-string pad ?\s)
                              label
-                             (propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height)))
+                             (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height)))
                              )
                             'face `(:family "monospace" :background ,(face-background 'tab-bar)
                                     :foreground ,(face-foreground 'default)
