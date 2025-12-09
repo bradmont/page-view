@@ -225,8 +225,9 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
   (interactive "nPage number: \nP")
   (beginning-of-visual-line)
   (let* ((height 3)
-         (ov (gethash page-number page-view-overlays))
-         (ov-margin (gethash (* -1 page-number) page-view-overlays))
+         (ov-pair (gethash page-number page-view-overlays))
+         (ov (or (car ov-pair) nil))
+         (ov-margin (or (cdr ov-pair) nil))
          (label
           (if page-view-debug-flag
               (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-line)
@@ -241,10 +242,11 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
 
     (if ov-margin
         (move-overlay ov-margin (point) (point)))
+
     (unless ov
 
       (setq ov (make-overlay (point) (point)))
-      (puthash page-number ov page-view-overlays)
+      (setq ov-pair nil)
 
       (overlay-put ov 'pagebreak t)  ;; <--- mark it
       (overlay-put ov 'after-string
@@ -266,7 +268,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                             ))))
     (unless ov-margin
       (setq ov-margin (make-overlay (point) (point)))
-      (puthash (* -1 page-number) ov-margin page-view-overlays)
+      (setq ov-pair nil)
       (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
 
       (overlay-put ov-margin 'before-string
@@ -292,6 +294,10 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                                 :underline nil)))
                                )
                             )
+      )
+    (unless ov-pair
+
+      (puthash page-number (cons ov ov-margin) page-view-overlays)
       )
     ))
 
