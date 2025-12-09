@@ -21,7 +21,7 @@
 
 (require 'olivetti)
 
-(defvar page-view-debug-flag nil
+(defvar-local page-view-debug-flag nil
   "If non-nil, show debug overlays for line heights and cumulative heights.")
 
 (defvar page-view-lines-per-page 36
@@ -51,7 +51,8 @@ CUMULATIVE-HEIGHT for the current line."
                                 :foreground "brown"
                                 :underline nil)))
                                )
-                            )))
+                            )
+      ))
 
 
 (defun page-view-remove-debug-overlays()
@@ -222,7 +223,7 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
             (page-view-apply-pagebreak this-page target-visual-line))))))
 
 
-(defun page-view-apply-pagebreak (page-number &optional target-line)
+(defun page-view-apply-pagebreak (page-number &optional target-visual-line)
   "Insert a visual page break below the current line.
 PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (default 3)."
   ; TODO use a configurable function for formatting page-break text
@@ -230,12 +231,15 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
   (interactive "nPage number: \nP")
   (beginning-of-visual-line)
   (let* ((height 3)
-         (ov-pair (gethash page-number page-view-overlays))
-         (ov (or (car ov-pair) nil))
-         (ov-margin (or (cdr ov-pair) nil))
+         (ov-vector (gethash page-number page-view-overlays))
+       (ov        (and ov-vector (aref ov-vector 0)))
+       (ov-margin (and ov-vector (aref ov-vector 1)))
+       (ov-header (and ov-vector (aref ov-vector 2)))
+         ;(ov (or (car ov-pair) nil))
+         ;(ov-margin (or (cdr ov-pair) nil))
          (label
           (if page-view-debug-flag
-              (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-line)
+              (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-visual-line)
             (format "Page %d" page-number )))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
 
@@ -247,33 +251,31 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
 
     (if ov-margin
         (move-overlay ov-margin (point) (point)))
+    (if ov-header
+        (move-overlay ov-header (point) (point))
+        )
 
     (unless ov
 
       (setq ov (make-overlay (point) (point)))
-      (setq ov-pair nil)
+      (setq ov-vector nil)
 
       (overlay-put ov 'pagebreak t)  ;; <--- mark it
       (overlay-put ov 'after-string
                    (concat "\n"
-                           (propertize
-                            (concat
+                            
+                           ;; the footer:
+                           (page-view--make-footer-string height page-number target-visual-line)
+                            
+                           ;; the pagebreak
+                           (page-view--make-pagebreak-string height)
+                           ;"\n"
 
-                             ;;(propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height)))
-                             ;; shorten for now until I figure out how to make ov-margin tlaler...
-                             (make-string pad ?\s)
-                             label
-                             (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height)))
-                             )
-                            'face `(:family "monospace" :background ,(face-background 'tab-bar)
-                                    :foreground ,(face-foreground 'default)
-                                    :weight bold
-                                    :underline nil
-                                    :slant normal )
-                            ))))
+                           ;(propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height))) ; top page margin
+                           )))
     (unless ov-margin
       (setq ov-margin (make-overlay (point) (point)))
-      (setq ov-pair nil)
+      (setq ov-vector nil)
       (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
 
       (overlay-put ov-margin 'before-string
@@ -300,12 +302,78 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                                )
                             )
       )
-    (unless ov-pair
 
-      (puthash page-number (cons ov ov-margin) page-view-overlays)
+    (unless ov-header
+      (setq ov-header (make-overlay (point) (point)))
+      (setq ov-vector nil)
+      (overlay-put ov-header 'pagebreak t)  ;; <--- mark it
+      (overlay-put ov-header 'before-string
+                   (concat
+                    "\n"
+                           (page-view--make-header-string height page-number )
+                    )
+                   )
+
+      )
+    (unless ov-vector
+
+      (puthash page-number (vector ov ov-margin ov-header) page-view-overlays)
       )
     ))
 
+(defun page-view--make-footer-string(height page-number target-visual-line)
+  (let* (
+         (label (if page-view-debug-flag
+                    (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-visual-line)
+                  (format "Page %d" page-number )))
+         (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) )
+         )
+    (propertize
+     (concat
+
+      ;; line  with footer text:
+      (make-string pad ?\s)
+      label
+                                        ; full line with page background colour
+      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
+      ;; 
+      ;; an extra line of margin after
+      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n")
+     'face `(:family "monospace" 
+             :foreground ,(face-foreground 'default)
+             :background ,(face-background 'default)
+             :weight bold
+             :underline nil
+             :slant normal )
+     )))
+
+(defun page-view--make-header-string(height page-number )
+  (let* ((label (format "Header %d" (1+ page-number )))
+         (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
+    (propertize
+     (concat
+
+      ;; line  with footer text:
+      (make-string pad ?\s)
+      label
+                                        ; full line with page background colour
+      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
+      ;; 
+      ;; an extra line of margin after
+      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n")
+     'face `(:family "monospace" 
+             :foreground ,(face-foreground 'default)
+             :background ,(face-background 'default)
+             :weight bold
+             :underline nil
+             :slant normal )
+     )))
+(defun page-view--make-pagebreak-string(height)
+  (propertize " " 'display `((space :width , (+ 1 (window-text-width))
+                              :height ,height))
+              'face `(:background ,(face-background 'tab-bar))
+              ) 
+  )
 
 (defun page-view-clear (&optional start end)
   "Remove all page-break overlays created by `page-view-apply-pagebreak`.
