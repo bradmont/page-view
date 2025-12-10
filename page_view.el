@@ -17,7 +17,8 @@
 ;; be able to function without it with minimal changes.
 
 ;;; Code:
-;;;
+;;; TODO: use faces for margins, breaks, headings, etc, instead of
+;;; propertizing everything...
 
 (require 'olivetti)
 
@@ -358,7 +359,8 @@ page-view-document-footer-function
       ;; 
       ;; an extra line of margin after
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n")
-     'face `(:family "monospace" 
+     'face `(:inherit default
+             :family "monospace" 
              :foreground ,(face-foreground 'default)
              :background ,(face-background 'default)
              :weight bold
@@ -370,7 +372,8 @@ page-view-document-footer-function
 (defun page-view--make-pagebreak-string(height)
   (propertize " " 'display `((space :width , (+ 1 (window-text-width))
                               :height ,height))
-              'face `(:background ,(face-background 'tab-bar)
+              'face `(:background
+                      ,(face-background 'tab-bar)
 
              :underline nil)))
 
@@ -384,7 +387,7 @@ page-view-document-footer-function
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       ;; line  with header text:
       (make-string pad ?\s)
-      (propertize label
+      label
        ; full line with page background colour
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       ;;
@@ -392,7 +395,9 @@ page-view-document-footer-function
 
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       )
-     'face `(:family "monospace" 
+     'face `(
+             :inherit default
+             :family "monospace" 
              :foreground ,(face-foreground 'default)
              :background ,(face-background 'default)
              :weight bold
