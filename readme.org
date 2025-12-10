@@ -10,20 +10,9 @@ implemented as an overlay. It currently applies styling and page sizes
 that approximate a letter-sized page using Times New Roman 12 point, at 1.5
 spacing. The package is built to work on top of [[https://github.com/rnkn/olivetti][olivetti-mode]], but it should
 be able to function without it with minimal changes.
-[[file:page_view.gif]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+[[file:preview.gif]]
+
+Note that the purpose of the package is to look like a word processor for more comfortable writing, not to be a perfect layout engine for documents. Org-mode remains the underlying format, so for publication or printing, use org-export to LaTeX, odt, html, or some other format.
 
 * Installation  
   Clone or copy the file into your load path:
