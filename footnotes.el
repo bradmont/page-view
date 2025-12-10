@@ -21,10 +21,10 @@
 
 
 
-(define-minor-mode footnote-mode
+(define-minor-mode org-inline-footnote-mode
   "Toggle inline footnotes visualization."
   :lighter " FN"
-  (if footnote-mode
+  (if org-inline-footnote-mode
       (org-inline-fn-visualize)
     (org-inline-fn-clear)))
 
@@ -94,6 +94,8 @@
                ;; markers for the hidden original text
                (beg-marker (copy-marker beg))
                (end-marker (copy-marker end))
+               (content-beg-marker (copy-marker (match-beginning 1)))
+               (content-end-marker (copy-marker (match-end 1)))
                ;; overlays
                (hide-ov (make-overlay beg end))
                (sup-ov (make-overlay beg end))
@@ -123,8 +125,8 @@
                                               (lambda (event)
                                                 (interactive "e")
                                                 (org-inline-fn-edit-marker
-                                                 beg-marker
-                                                 end-marker)))
+                                                 content-beg-marker
+                                                 content-end-marker)))
                                   map)))
 
           
