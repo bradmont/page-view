@@ -285,17 +285,16 @@ page-view-document-footer-function
 
       (overlay-put ov 'pagebreak t)  ;; <--- mark it
       (overlay-put ov 'after-string
-                   (concat "\n"
-                            
-                           ;; the footer:
-                           (page-view--make-footer-string height page-number target-visual-line)
-                            
-                           ;; the pagebreak
-                           (page-view--make-pagebreak-string height)
-                           ;"\n"
+                   (concat 
+                    
+                    ;; the footer:
+                    (if (> page-number 0)
+                        (concat
+                         "\n"
+                         (page-view--make-footer-string height page-number target-visual-line)))
+                    ;; the pagebreak
+                    (page-view--make-pagebreak-string height))))
 
-                           ;(propertize " " 'display `((space :width , (+ 1 (window-text-width)) :height ,height))) ; top page margin
-                           )))
     (unless ov-margin
       (setq ov-margin (make-overlay (point) (point)))
       (setq ov-vector nil)
