@@ -332,10 +332,7 @@ page-view-document-footer-function
       (overlay-put ov-header 'before-string
                    (concat
                     "\n"
-                           (page-view--make-header-string height page-number )
-                    )
-                   )
-
+                    (page-view--make-header-string height page-number )))
       )
     (unless ov-vector
 
@@ -369,6 +366,14 @@ page-view-document-footer-function
              :slant normal )
      )))
 
+
+(defun page-view--make-pagebreak-string(height)
+  (propertize " " 'display `((space :width , (+ 1 (window-text-width))
+                              :height ,height))
+              'face `(:background ,(face-background 'tab-bar)
+
+             :underline nil)))
+
 (defun page-view--make-header-string(height page-number )
   (let* ((label (funcall page-view-document-header-function page-number ))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
@@ -377,10 +382,10 @@ page-view-document-footer-function
 
       ;; a line of margin first
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
-      ;; line  with footer text:
+      ;; line  with header text:
       (make-string pad ?\s)
-      label
-                                        ; full line with page background colour
+      (propertize label
+       ; full line with page background colour
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       ;;
       ;;
@@ -392,15 +397,9 @@ page-view-document-footer-function
              :background ,(face-background 'default)
              :weight bold
              :underline nil
-             :slant normal )
+             :slant italic )
      )))
 
-(defun page-view--make-pagebreak-string(height)
-  (propertize " " 'display `((space :width , (+ 1 (window-text-width))
-                              :height ,height))
-              'face `(:background ,(face-background 'tab-bar)
-
-             :underline nil)))
 
 (defun page-view-clear (&optional start end)
   "Remove all page-break overlays created by `page-view-apply-pagebreak`.
@@ -540,6 +539,9 @@ LINE defaults to the current line. Uses and updates cached
 
             ;; if no cumulative-height is stored, we're on line 1
             ;; Add this line's height if necessary.
+            (if (= cumulative-height 0)
+              (page-view-apply-pagebreak 0)
+              )
 
 
             ;; Walk forward until reaching the requested line.
