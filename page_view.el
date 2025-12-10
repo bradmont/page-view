@@ -29,6 +29,29 @@
 processer Times New Roman 12 point, 1.5 spacing.")
 ;; TODO: calculate this based on face styles; make face styles configurable
 
+(defcustom page-view-document-header-function
+  (lambda (&optional page-number _extra)
+    (org-get-title ))
+  "Function used to compute a page header.
+
+It will be called with arguments:
+  (page-number)"
+
+  :type 'function
+  :group 'page-view)
+
+
+(defcustom page-view-document-footer-function
+  (lambda (&optional page-number target-visual-line)
+            (format "Page %d" page-number ))
+  "Function used to compute a page footer.
+
+It will be called with two arguments:
+  (page-number target-visual-line) "
+  :type 'function
+  :group 'page-view)
+
+
 (defun page-view-debug-overlay (height cumulative-height)
   "Display a small overlay in the left fringe showing HEIGHT and
 CUMULATIVE-HEIGHT for the current line."
@@ -226,7 +249,6 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
 (defun page-view-apply-pagebreak (page-number &optional target-visual-line)
   "Insert a visual page break below the current line.
 PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (default 3)."
-  ; TODO use a configurable function for formatting page-break text
   ; TODO use a configurable function for formatting page-break style
   (interactive "nPage number: \nP")
   (beginning-of-visual-line)
@@ -240,6 +262,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
          (label
           (if page-view-debug-flag
               (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-visual-line)
+page-view-document-footer-function
             (format "Page %d" page-number )))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
 
@@ -325,7 +348,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
   (let* (
          (label (if page-view-debug-flag
                     (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-visual-line)
-                  (format "Page %d" page-number )))
+                  (funcall page-view-document-footer-function page-number target-visual-line)))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) )
          )
     (propertize
@@ -348,19 +371,23 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
      )))
 
 (defun page-view--make-header-string(height page-number )
-  (let* ((label (format "Header %d" (1+ page-number )))
+  (let* ((label (funcall page-view-document-header-function page-number ))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
     (propertize
      (concat
 
+      ;; a line of margin first
+      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       ;; line  with footer text:
       (make-string pad ?\s)
       label
                                         ; full line with page background colour
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
-      ;; 
-      ;; an extra line of margin after
-      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n")
+      ;;
+      ;;
+
+      (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
+      )
      'face `(:family "monospace" 
              :foreground ,(face-foreground 'default)
              :background ,(face-background 'default)
@@ -368,12 +395,13 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
              :underline nil
              :slant normal )
      )))
+
 (defun page-view--make-pagebreak-string(height)
   (propertize " " 'display `((space :width , (+ 1 (window-text-width))
                               :height ,height))
-              'face `(:background ,(face-background 'tab-bar))
-              ) 
-  )
+              'face `(:background ,(face-background 'tab-bar)
+
+             :underline nil)))
 
 (defun page-view-clear (&optional start end)
   "Remove all page-break overlays created by `page-view-apply-pagebreak`.
