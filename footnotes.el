@@ -67,7 +67,7 @@
 
 
 (defun org-inline-fn--superscript (n)
-  "Convert arbitrary number N to superscript string."
+  "Convert arbitrary natural number N to superscript string."
   (let ((digits ["⁰" "¹" "²" "³" "⁴" "⁵" "⁶" "⁷" "⁸" "⁹"])
         (res ""))
     (while (> n 0)
@@ -96,6 +96,7 @@
                (end-marker (copy-marker end))
                (content-beg-marker (copy-marker (match-beginning 1)))
                (content-end-marker (copy-marker (match-end 1)))
+               (screen-lines (count-screen-lines (match-beginning 1) (match-end 1)) )
                ;; overlays
                (hide-ov (make-overlay beg end))
                (sup-ov (make-overlay beg end))
@@ -110,6 +111,8 @@
           ;; inline superscript
           (overlay-put sup-ov 'after-string sup)
           (overlay-put sup-ov 'read-only t)
+          (overlay-put sup-ov 'footnote t)
+          (overlay-put sup-ov 'end-overlay end-ov)
 
           ;; footnote/citation at paragraph end: keymap attached to the after-string itself
           ;; 
@@ -152,6 +155,12 @@
         ;; refresh overlays
         (org-inline-fn-visualize)))))
 
+(defun org-inline-fn-get-in-region (beg end)
+  "Return a list of footnotes in region BEG to END."
+  (seq-filter (lambda (ov)
+                (eq (overlay-get ov 'footnote) t))
+              (overlays-in beg end)))
+
 
 ;; Usage:
 ;; M-x org-inline-fn-visualize   → inline superscripts + text at paragraph end
@@ -159,5 +168,5 @@
 
 
 
-(provide 'footnotes)
+(provide 'org-inline-footnotes)
 ;;; footnotes.el ends here

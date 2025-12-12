@@ -19,6 +19,8 @@
 ;;; Code:
 
 (require 'olivetti)
+(add-to-list 'load-path "~/src/page-view/")
+(require 'org-inline-footnotes)
 
 (defvar-local page-view-debug-flag nil
   "If non-nil, show debug overlays for line heights and cumulative heights.")
@@ -250,7 +252,32 @@ the Olivetti fringe style."
   "Apply pagebreaks for the region between START and END buffer positions."
   ;; with our cache code adding pagebreaks as it goes, we shoud just be
   ;; able to call the cache for end line...
-  (page-view-get-cumulative-height (line-number-at-pos end)))
+  (page-view-get-cumulative-height (line-number-at-pos end))
+  (page-view-move-footnotes-in-region start end))
+
+(defun page-view-move-footnotes-in-screen()
+  (interactive)
+  (message "move footnotes %d %d" (window-start) (window-end))
+  (page-view-move-footnotes-in-region (window-start) (window-end)))
+
+(defun page-view-move-footnotes-in-region(start end)
+  (if org-inline-footnote-mode
+      (let* ((page-end (page-view--next-pagebreak-overlay-pos)))
+        (message "page-end %d" (or page-end -1))
+        (if page-end
+            (mapc (lambda (ov) (move-overlay (overlay-get ov 'end-overlay) (1- page-end) (1- page-end)))
+                  (org-inline-fn-get-in-region start page-end))))))
+
+(defun page-view--next-pagebreak-overlay-pos (&optional pos)
+  "Return the start position of the next overlay with 'pagebreak t after POS (or point)."
+  (let* ((start (or pos (point)))
+         (ovs (seq-filter (lambda (ov) (eq (overlay-get ov 'pagebreak) t))
+                          (overlays-in start (point-max)))))
+    (when ovs
+      (overlay-start (car ovs)))))
+
+ ;; return nil if none found
+
 
 (defun page-view-goto-visual-line (visual-line)
   "Use the page-view cache to jump to a visual line. DO NOT USE
