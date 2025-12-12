@@ -3,7 +3,7 @@
 ;; Author: Brad Stewart
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "25.1") (olivetti "0"))
-;; Keywords: convenience, editing
+;; Keywords: style, editing, word processing
 ;; URL: https://example.com/page-view
 
 ;;; Commentary:
@@ -51,6 +51,32 @@ It will be called with two arguments:
   (page-number target-visual-line) "
   :type 'function
   :group 'page-view)
+
+
+(defface page-view-pagebreak-face
+  `((t :family "monospace"
+       :background ,(face-background 'tab-bar)
+       :foreground "white"
+       :underline nil))
+  "Face for pagebreaks.")
+
+(defface page-view-footer-face
+  `((t :inherit default
+       :family "monospace"
+       :foreground ,(face-foreground 'default)
+       :background ,(face-background 'default)
+       :weight bold
+       :underline nil
+       :slant normal))
+  "Face for page-view footer.")
+
+(defface page-view-header-face
+  '((t :inherit page-view-footer-face
+       :slant italic))
+  "Face for the page-view header.")
+
+
+
 
 
 (defun page-view-debug-overlay (height cumulative-height)
@@ -305,26 +331,13 @@ page-view-document-footer-function
                    (propertize " "
                    'display
                    `((margin left-margin) ,(propertize (make-string olivetti-margin-width ?\s)
-                        'face `(:family "monospace"
-                                ;:width ,olivetti-margin-width
-                                :background ,(face-background 'tab-bar)
-                                :foreground "white"
-                                :underline nil)))
-                               )
-                            )
+                        'face page-view-pagebreak-face))))
 
       (overlay-put ov-margin 'after-string
                    (propertize " "
                    'display
                    `((margin right-margin) ,(propertize (make-string olivetti-margin-width ?\s)
-                        'face `(:family "monospace"
-                                ;:width ,olivetti-margin-width
-                                :background ,(face-background 'tab-bar)
-                                :foreground "white"
-                                :underline nil)))
-                               )
-                            )
-      )
+                        'face page-view-pagebreak-face)))))
 
     (unless ov-header
       (setq ov-header (make-overlay (point) (point)))
@@ -359,23 +372,13 @@ page-view-document-footer-function
       ;; 
       ;; an extra line of margin after
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n")
-     'face `(:inherit default
-             :family "monospace" 
-             :foreground ,(face-foreground 'default)
-             :background ,(face-background 'default)
-             :weight bold
-             :underline nil
-             :slant normal )
-     )))
+     'face page-view-footer-face)))
 
 
 (defun page-view--make-pagebreak-string(height)
   (propertize " " 'display `((space :width , (+ 1 (window-text-width))
                               :height ,height))
-              'face `(:background
-                      ,(face-background 'tab-bar)
-
-             :underline nil)))
+              'face page-view-pagebreak-face))
 
 (defun page-view--make-header-string(height page-number )
   (let* ((label (funcall page-view-document-header-function page-number ))
@@ -395,15 +398,7 @@ page-view-document-footer-function
 
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       )
-     'face `(
-             :inherit default
-             :family "monospace" 
-             :foreground ,(face-foreground 'default)
-             :background ,(face-background 'default)
-             :weight bold
-             :underline nil
-             :slant italic )
-     )))
+     'face page-view-header-face)))
 
 
 (defun page-view-clear (&optional start end)
