@@ -76,17 +76,15 @@ by looking at LibreOffice with the style we want to emulate."
   :group 'page-view)
 
 (defface page-view-pagebreak-face
-  `((t :family "monospace"
-       :background ,(face-background 'tab-bar)
+  `((t :inherit 'tab-bar
+     :family "monospace"
        :foreground "white"
        :underline nil))
   "Face for pagebreaks.")
 
 (defface page-view-footer-face
-  `((t :inherit default
+  `((t :inherit 'default
        :family "monospace"
-       :foreground ,(face-foreground 'default)
-       :background ,(face-background 'default)
        :weight bold
        :underline nil
        :slant normal))
