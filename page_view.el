@@ -28,10 +28,22 @@
 (defvar page-view-lines-per-page 36
   "Number of lines per page for page breakinsertion. Approximates a word
 processer Times New Roman 12 point, 1.5 spacing.")
+
+
 ;; TODO: calculate this based on face styles; make face styles configurable
+;;
+(defface page-view-body-face
+  '((t 
+       :family "Times New Roman"))
+  "Face used by `page-view` mode."
+  :group 'page-view)
+
+
+(defvar-local page-view--body-face-cookie nil
+  "Cookie returned by `face-remap-add-relative` for restoring face.")
 
 (defcustom page-view-document-header-function
-  (lambda (&optional page-number _extra)
+  (lambda (&optional page-number target-visual-line)
     (org-get-title ))
   "Function used to compute a page header.
 
@@ -52,6 +64,16 @@ It will be called with two arguments:
   :type 'function
   :group 'page-view)
 
+(defcustom page-view-line-spacing 8
+  "page-view line spacing"
+  :type 'integer
+  :group 'page-view)
+
+(defcustom page-view-olivetti-width 69
+  "page-view body width in fixed-width columns. Estimated
+by looking at LibreOffice with the style we want to emulate."
+  :type 'integer
+  :group 'page-view)
 
 (defface page-view-pagebreak-face
   `((t :family "monospace"
@@ -128,16 +150,14 @@ though. Overrid or advise this function to adjust."
 
   ;; we're emulating Times New Roman 12 at 1.5 spacing in a word processor.
   ;; eventually these ought to be configurable
-  (setq-local olivetti-body-width 69)
+  (setq-local olivetti-body-width page-view-olivetti-width)
 
-  (setq my-line-spacing 8)
 
   (setq-local default-text-properties
-              `(line-spacing ,my-line-spacing
-                wrap-prefix (space . (:height (,(+ (default-font-height) my-line-spacing))
+              `(line-spacing ,page-view-line-spacing
+                wrap-prefix (space . (:height (,(+ (default-font-height) page-view-line-spacing))
                                       :width (0)))))
   
-  (face-remap-add-relative 'default `(:family "Times New Roman"))
   
  (setup-olivetti-fringes) 
   
@@ -187,6 +207,10 @@ the Olivetti fringe style."
   (if page-view-mode
       (progn
         ;; Register the jit-lock function buffer-locally
+        (setq page-view--body-face-cookie
+              (face-remap-add-relative 'default (face-attr-construct 'page-view-body-face)))
+
+
         (jit-lock-register #'page-view-jit-reflow)
         (add-hook 'window-scroll-functions #'page-view--on-scroll nil t)
 
@@ -203,7 +227,11 @@ the Olivetti fringe style."
       (if page-view-debug-flag 
           (page-view-remove-debug-overlays)
         )
-
+       
+      ;; reset face
+      (when page-view--body-face-cookie
+        (face-remap-remove-relative page-view--body-face-cookie)
+        (setq page-view--body-face-cookie nil))
       (page-view-reset))))
 
 
@@ -287,8 +315,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
          ;(ov-margin (or (cdr ov-pair) nil))
          (label
           (if page-view-debug-flag
-              (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-visual-line)
-page-view-document-footer-function
+              (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) (or target-visual-line 0))
             (format "Page %d" page-number )))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
 
@@ -310,7 +337,7 @@ page-view-document-footer-function
                       (if (> page-number 0)
                           (concat
                            "\n"
-                           (page-view--make-footer-string height page-number target-visual-line)))
+                           (page-view--make-footer-string height page-number (or target-visual-line 0))))
                       ;; the pagebreak
                       (page-view--make-pagebreak-string height)))))
 
@@ -333,7 +360,7 @@ page-view-document-footer-function
         (overlay-put ov-header 'before-string
                      (concat
                       "\n"
-                      (page-view--make-header-string height page-number )))
+                      (page-view--make-header-string height page-number target-visual-line)))
         )
       )
 
@@ -349,6 +376,7 @@ page-view-document-footer-function
     ))
 
 (defun page-view--make-pagebreak-left-margin-string()
+  "propertized string to us in the left margin pagebreak overlay"
   (propertize " "
               'display
               `((margin left-margin) ,(propertize (make-string olivetti-margin-width ?\s)
@@ -356,6 +384,7 @@ page-view-document-footer-function
   )
 
 (defun page-view--make-pagebreak-right-margin-string()
+  "propertized string to us in the right margin pagebreak overlay"
   (propertize " "
               'display
               `((margin right-margin) ,(propertize (make-string olivetti-margin-width ?\s)
@@ -363,10 +392,11 @@ page-view-document-footer-function
   )
 
 (defun page-view--make-footer-string(height page-number target-visual-line)
+  "propertized string to use as the footer overly"
   (let* (
          (label (if page-view-debug-flag
                     (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) target-visual-line)
-                  (funcall page-view-document-footer-function page-number target-visual-line)))
+                  (funcall page-view-document-footer-function page-number (or target-visual-line 0 ))))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) )
          )
     (propertize
@@ -384,12 +414,13 @@ page-view-document-footer-function
 
 
 (defun page-view--make-pagebreak-string(height)
+  "propertized string to use as the in-body pagebreak"
   (propertize " " 'display `((space :width , (+ 1 (window-text-width))
                               :height ,height))
               'face 'page-view-pagebreak-face))
 
-(defun page-view--make-header-string(height page-number )
-  (let* ((label (funcall page-view-document-header-function page-number ))
+(defun page-view--make-header-string(height page-number target-visual-line)
+  (let* ((label (funcall page-view-document-header-function (1+ page-number) target-visual-line))
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
     (propertize
      (concat

@@ -37,6 +37,14 @@ To toggle debugging overlays:
 #+end_src
 
 
+* Style
+You can cutomize the following faces to adjust display to your preferences:
+=page-view-body-face= : The default face for body text. If you change this, you'll also want to change  bp =page-view-lines-per-page= and =page-view-olivetti-width=. Eventually I want to automatically calculate these based on the attributes of =page-view-body-face=, but for the time being it needs to be hard coded.
+
+=page-view-footer-face= and =page-view-header-face= : The faces the header and footer text (default to document title and page number) are displayed in.
+
+You can also customize =page-view-document-header-function= and =page-view-document-footer-function= to change the text of the headers and footers. They take two variables, PAGE and TARGET-VISUAL-LINE, which are the current page number and visual line where the pagebreak should be displayed (this second one is mainly used for debugging).
+
 * Incremental Updates  
 A small cache-invalidating mechanism ensures that only affected lines are recomputed after edits.  
 Pagination updates occur:
