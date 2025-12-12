@@ -1,10 +1,10 @@
 ;;; page-view.el --- Simple page view -*- lexical-binding: t; -*-
 
 ;; Author: Brad Stewart
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "25.1") (olivetti "0"))
 ;; Keywords: style, editing, word processing
-;; URL: https://example.com/page-view
+;; URL: https://github.com/bradmont/page-view
 
 ;;; Commentary:
 
@@ -17,8 +17,6 @@
 ;; be able to function without it with minimal changes.
 
 ;;; Code:
-;;; TODO: use faces for margins, breaks, headings, etc, instead of
-;;; propertizing everything...
 
 (require 'olivetti)
 
