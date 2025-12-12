@@ -76,6 +76,11 @@ It will be called with two arguments:
   "Face for the page-view header.")
 
 
+(defface page-view-debug-face
+  '((t :inherit page-view-footer-face
+     :foreground "brown"
+     :slant italic))
+  "Face for the page-view header.")
 
 
 
@@ -96,13 +101,7 @@ CUMULATIVE-HEIGHT for the current line."
                    (propertize " "
                    'display
                    `((margin left-margin) ,(propertize label
-                        'face `(:family "monospace"
-                                ;:width ,olivetti-margin-width
-                                :foreground "brown"
-                                :underline nil)))
-                               )
-                            )
-      ))
+                        'face 'page-view-debug-face))))))
 
 
 (defun page-view-remove-debug-overlays()
@@ -297,62 +296,71 @@ page-view-document-footer-function
         (message "page-break : %s" label))
 
     (if ov
-        (move-overlay ov (point) (point)))
+        (move-overlay ov (point) (point))
+      (progn
+
+        (setq ov (make-overlay (point) (point)))
+        (setq ov-vector nil)
+
+        (overlay-put ov 'pagebreak t)  ;; <--- mark it
+        (overlay-put ov 'after-string
+                     (concat 
+                      
+                      ;; the footer:
+                      (if (> page-number 0)
+                          (concat
+                           "\n"
+                           (page-view--make-footer-string height page-number target-visual-line)))
+                      ;; the pagebreak
+                      (page-view--make-pagebreak-string height)))))
 
     (if ov-margin
-        (move-overlay ov-margin (point) (point)))
+        (move-overlay ov-margin (point) (point))
+      (progn
+        (setq ov-margin (make-overlay (point) (point)))
+        (setq ov-vector nil)
+        (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
+        (overlay-put ov-margin 'before-string (page-view--make-pagebreak-left-margin-string))
+        (overlay-put ov-margin 'after-string (page-view--make-pagebreak-right-margin-string)))
+      )
+
     (if ov-header
         (move-overlay ov-header (point) (point))
+      (progn
+        (setq ov-header (make-overlay (point) (point)))
+        (setq ov-vector nil)
+        (overlay-put ov-header 'pagebreak t)  ;; <--- mark it
+        (overlay-put ov-header 'before-string
+                     (concat
+                      "\n"
+                      (page-view--make-header-string height page-number )))
         )
-
-    (unless ov
-
-      (setq ov (make-overlay (point) (point)))
-      (setq ov-vector nil)
-
-      (overlay-put ov 'pagebreak t)  ;; <--- mark it
-      (overlay-put ov 'after-string
-                   (concat 
-                    
-                    ;; the footer:
-                    (if (> page-number 0)
-                        (concat
-                         "\n"
-                         (page-view--make-footer-string height page-number target-visual-line)))
-                    ;; the pagebreak
-                    (page-view--make-pagebreak-string height))))
-
-    (unless ov-margin
-      (setq ov-margin (make-overlay (point) (point)))
-      (setq ov-vector nil)
-      (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
-
-      (overlay-put ov-margin 'before-string
-                   (propertize " "
-                   'display
-                   `((margin left-margin) ,(propertize (make-string olivetti-margin-width ?\s)
-                        'face page-view-pagebreak-face))))
-
-      (overlay-put ov-margin 'after-string
-                   (propertize " "
-                   'display
-                   `((margin right-margin) ,(propertize (make-string olivetti-margin-width ?\s)
-                        'face page-view-pagebreak-face)))))
-
-    (unless ov-header
-      (setq ov-header (make-overlay (point) (point)))
-      (setq ov-vector nil)
-      (overlay-put ov-header 'pagebreak t)  ;; <--- mark it
-      (overlay-put ov-header 'before-string
-                   (concat
-                    "\n"
-                    (page-view--make-header-string height page-number )))
       )
+
+    
+
+    
+
+    
     (unless ov-vector
 
       (puthash page-number (vector ov ov-margin ov-header) page-view-overlays)
       )
     ))
+
+(defun page-view--make-pagebreak-left-margin-string()
+  (propertize " "
+              'display
+              `((margin left-margin) ,(propertize (make-string olivetti-margin-width ?\s)
+                                                  'face 'page-view-pagebreak-face)))
+  )
+
+(defun page-view--make-pagebreak-right-margin-string()
+  (propertize " "
+              'display
+              `((margin right-margin) ,(propertize (make-string olivetti-margin-width ?\s)
+                                                  'face 'page-view-pagebreak-face)))
+  )
 
 (defun page-view--make-footer-string(height page-number target-visual-line)
   (let* (
@@ -372,13 +380,13 @@ page-view-document-footer-function
       ;; 
       ;; an extra line of margin after
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n")
-     'face page-view-footer-face)))
+     'face 'page-view-footer-face)))
 
 
 (defun page-view--make-pagebreak-string(height)
   (propertize " " 'display `((space :width , (+ 1 (window-text-width))
                               :height ,height))
-              'face page-view-pagebreak-face))
+              'face 'page-view-pagebreak-face))
 
 (defun page-view--make-header-string(height page-number )
   (let* ((label (funcall page-view-document-header-function page-number ))
@@ -398,7 +406,7 @@ page-view-document-footer-function
 
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       )
-     'face page-view-header-face)))
+     'face 'page-view-header-face)))
 
 
 (defun page-view-clear (&optional start end)
