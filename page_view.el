@@ -260,6 +260,11 @@ the Olivetti fringe style."
   (message "move footnotes %d %d" (window-start) (window-end))
   (page-view-move-footnotes-in-region (window-start) (window-end)))
 
+
+;;;;;;;;;;;;;;;;; footnote moving
+;; TODO: debug
+;; TODO: reflow doc on enabling/enable on starting page-view
+;; TODO: write --previous-pagebreak-overlay-pos, and use for -get-in-region
 (defun page-view-move-footnotes-in-region(start end)
   (if org-inline-footnote-mode
       (let* ((page-end (page-view--next-pagebreak-overlay-pos)))
@@ -268,6 +273,7 @@ the Olivetti fringe style."
             (mapc (lambda (ov) (move-overlay (overlay-get ov 'end-overlay) (1- page-end) (1- page-end)))
                   (org-inline-fn-get-in-region start page-end))))))
 
+;; TODO point-max for overlays-in is terribly wasteful
 (defun page-view--next-pagebreak-overlay-pos (&optional pos)
   "Return the start position of the next overlay with 'pagebreak t after POS (or point)."
   (let* ((start (or pos (point)))
@@ -276,8 +282,7 @@ the Olivetti fringe style."
     (when ovs
       (overlay-start (car ovs)))))
 
- ;; return nil if none found
-
+
 
 (defun page-view-goto-visual-line (visual-line)
   "Use the page-view cache to jump to a visual line. DO NOT USE
