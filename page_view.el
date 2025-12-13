@@ -11,36 +11,17 @@
 ;; This is a package meant to emulate the visual, page-based layout of a word
 ;; processor like LibreOffice Write or Microsoft Word in org-mode. Mainly, it
 ;; divides your document into pages, divided by a visual pagebreak/footer,
-;; implemented as an overlay. It currently applies styling and page sizes
-;; that approximate a letter-sized page using Times New Roman 12 point, at 1.5
+;; implemented as an overlay. It currently applies styling and page sizes that
+;; approximate a letter-sized page using Times New Roman 12 point, at 1.5
 ;; spacing. The package is built to work on top of olivetti-mode, but it should
 ;; be able to function without it with minimal changes.
 
 ;;; Code:
 
 (require 'olivetti)
-(add-to-list 'load-path "~/src/page-view/")
-(require 'org-inline-footnotes)
+(load "~/src/page-view/footnotes.el")
+;(require 'org-inline-footnotes)
 
-(defvar-local page-view-debug-flag nil
-  "If non-nil, show debug overlays for line heights and cumulative heights.")
-
-(defvar page-view-lines-per-page 36
-  "Number of lines per page for page breakinsertion. Approximates a word
-processer Times New Roman 12 point, 1.5 spacing.")
-
-
-;; TODO: calculate this based on face styles; make face styles configurable
-;;
-(defface page-view-body-face
-  '((t 
-       :family "Times New Roman"))
-  "Face used by `page-view` mode."
-  :group 'page-view)
-
-
-(defvar-local page-view--body-face-cookie nil
-  "Cookie returned by `face-remap-add-relative` for restoring face.")
 
 (defcustom page-view-document-header-function
   (lambda (&optional page-number target-visual-line)
@@ -62,6 +43,11 @@ It will be called with arguments:
 It will be called with two arguments:
   (page-number target-visual-line) "
   :type 'function
+  :group 'page-view)
+
+(defcustom page-view-use-footnotes t
+  "Enable inline footnotes with page-view-mode?"
+  :type 'boolean
   :group 'page-view)
 
 (defcustom page-view-line-spacing 8
@@ -101,6 +87,31 @@ by looking at LibreOffice with the style we want to emulate."
      :foreground "brown"
      :slant italic))
   "Face for the page-view header.")
+
+(defvar-local page-view-debug-flag nil
+  "If non-nil, show debug overlays for line heights and cumulative heights.")
+
+(defvar page-view-lines-per-page 36
+  "Number of lines per page for page breakinsertion. Approximates a word
+processer Times New Roman 12 point, 1.5 spacing.")
+;; TODO: calculate this based on face styles; make face styles configurable
+
+
+
+;; A buffer-local hash: page-number -> overlay
+(defvar-local page-view-overlays (make-hash-table))
+
+;;
+(defface page-view-body-face
+  '((t 
+       :family "Times New Roman"))
+  "Face used by `page-view` mode."
+  :group 'page-view)
+
+
+(defvar-local page-view--body-face-cookie nil
+  "Cookie returned by `face-remap-add-relative` for restoring face.")
+
 
 
 
@@ -205,6 +216,9 @@ the Olivetti fringe style."
   (if page-view-mode
       (progn
         ;; Register the jit-lock function buffer-locally
+        (if page-view-use-footnotes
+            (org-inline-footnote-mode 1)
+            )
         (setq page-view--body-face-cookie
               (face-remap-add-relative 'default (face-attr-construct 'page-view-body-face)))
 
@@ -230,7 +244,12 @@ the Olivetti fringe style."
       (when page-view--body-face-cookie
         (face-remap-remove-relative page-view--body-face-cookie)
         (setq page-view--body-face-cookie nil))
-      (page-view-reset))))
+      (page-view-reset)
+
+        (if page-view-use-footnotes
+            (org-inline-footnote-mode -1)
+            )
+      )))
 
 
 (defun page-view-jit-reflow (start end)
@@ -305,8 +324,6 @@ best if (point) is already relatively near the target visual-line."
   "Hook function for `window-scroll-functions` to apply pagebreaks."
   (page-view--reflow-screen display-start (window-end window t)))
 
-;; A buffer-local hash: page-number -> overlay
-(defvar-local page-view-overlays (make-hash-table))
 
 
 (defun page-view-maybe-apply-pagebreak (cumulative-height line-height)
