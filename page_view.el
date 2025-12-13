@@ -352,10 +352,9 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
   (interactive "nPage number: \nP")
   (beginning-of-visual-line)
   (let* ((height 3)
-         (ov-vector (gethash page-number page-view-overlays))
-       (ov        (and ov-vector (aref ov-vector 0)))
-       (ov-margin (and ov-vector (aref ov-vector 1)))
-       (ov-header (and ov-vector (aref ov-vector 2)))
+         (ov (gethash page-number page-view-overlays))
+       (ov-margin (and ov (overlay-get ov 'ov-margin)))
+       (ov-header (and ov (overlay-get ov 'ov-header)))
          ;(ov (or (car ov-pair) nil))
          ;(ov-margin (or (cdr ov-pair) nil))
          (label
@@ -368,13 +367,20 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
         (message "page-break : %s" label))
 
     (if ov
-        (move-overlay ov (point) (point))
-      (progn
-
+        (progn ;; move existing overlays
+          (move-overlay ov (point) (point))
+          (move-overlay ov-margin (point) (point))
+          (move-overlay ov-header (point) (point)))
+      (progn ;; we need to make new overlays
         (setq ov (make-overlay (point) (point)))
-        (setq ov-vector nil)
+        (setq ov-margin (make-overlay (point) (point)))
+        (setq ov-header (make-overlay (point) (point)))
 
         (overlay-put ov 'pagebreak t)  ;; <--- mark it
+        (overlay-put ov 'ov-margin ov-margin)  
+        (overlay-put ov 'ov-header ov-header)  
+
+        ;; page-break overlay
         (overlay-put ov 'after-string
                      (concat 
                       
@@ -384,40 +390,19 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                            "\n"
                            (page-view--make-footer-string height page-number (or target-visual-line 0))))
                       ;; the pagebreak
-                      (page-view--make-pagebreak-string height)))))
+                      (page-view--make-pagebreak-string height)))
 
-    (if ov-margin
-        (move-overlay ov-margin (point) (point))
-      (progn
-        (setq ov-margin (make-overlay (point) (point)))
-        (setq ov-vector nil)
         (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
         (overlay-put ov-margin 'before-string (page-view--make-pagebreak-left-margin-string))
-        (overlay-put ov-margin 'after-string (page-view--make-pagebreak-right-margin-string)))
-      )
+        (overlay-put ov-margin 'after-string (page-view--make-pagebreak-right-margin-string))
 
-    (if ov-header
-        (move-overlay ov-header (point) (point))
-      (progn
-        (setq ov-header (make-overlay (point) (point)))
-        (setq ov-vector nil)
+
         (overlay-put ov-header 'pagebreak t)  ;; <--- mark it
         (overlay-put ov-header 'before-string
                      (concat
                       "\n"
                       (page-view--make-header-string height page-number target-visual-line)))
-        )
-      )
-
-    
-
-    
-
-    
-    (unless ov-vector
-
-      (puthash page-number (vector ov ov-margin ov-header) page-view-overlays)
-      )
+        (puthash page-number (vector ov ov-margin ov-header) page-view-overlays)))
     ))
 
 (defun page-view--make-pagebreak-left-margin-string()
