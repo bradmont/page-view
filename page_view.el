@@ -100,6 +100,9 @@ processer Times New Roman 12 point, 1.5 spacing.")
 
 ;; A buffer-local hash: page-number -> overlay
 (defvar-local page-view-overlays (make-hash-table))
+;; 
+;; A buffer-local index of the highest calculated page
+(defvar-local page-view--max-page 1)
 
 ;;
 (defface page-view-body-face
@@ -293,6 +296,7 @@ the Olivetti fringe style."
                   (org-inline-fn-get-in-region start page-end))))))
 
 ;; TODO point-max for overlays-in is terribly wasteful
+
 (defun page-view--next-pagebreak-overlay-pos (&optional pos)
   "Return the start position of the next overlay with 'pagebreak t after POS (or point)."
   (let* ((start (or pos (point)))
@@ -300,6 +304,25 @@ the Olivetti fringe style."
                           (overlays-in start (point-max)))))
     (when ovs
       (overlay-start (car ovs)))))
+
+(defun page-view--current-page-number (&optional pos)
+  "Return the page number at point or POS.
+This is the smallest page index whose overlay starts after POS."
+  (let ((pos (or pos (point)))
+        (low 1)
+        (high page-view--max-page)
+        result)
+    (while (<= low high)
+      (let* ((mid (/ (+ low high) 2))
+             (ov (gethash mid page-view-overlays))
+             (start (overlay-start ov)))
+        (if (> start pos)
+            (progn
+              (setq result mid)
+              (setq high (1- mid)))
+          (setq low (1+ mid)))))
+    result))
+
 
 
 
@@ -350,18 +373,18 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
 PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (default 3)."
   ; TODO use a configurable function for formatting page-break style
   (interactive "nPage number: \nP")
+  (if (> page-number page-view--max-page)
+      (setq page-view--max-page page-number))
   (beginning-of-visual-line)
   (let* ((height 3)
          (ov (gethash page-number page-view-overlays))
-       (ov-margin (and ov (overlay-get ov 'ov-margin)))
-       (ov-header (and ov (overlay-get ov 'ov-header)))
-         ;(ov (or (car ov-pair) nil))
-         ;(ov-margin (or (cdr ov-pair) nil))
+         (ov-margin (and ov (overlay-get ov 'ov-margin)))
+         (ov-header (and ov (overlay-get ov 'ov-header)))
          (label
           (if page-view-debug-flag
               (format "Page %d; line %d; visual-line %d" page-number (line-number-at-pos) (or target-visual-line 0))
             (format "Page %d" page-number )))
-         (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2) ))
+         (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2)))
 
     (if page-view-debug-flag
         (message "page-break : %s" label))
@@ -402,7 +425,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                      (concat
                       "\n"
                       (page-view--make-header-string height page-number target-visual-line)))
-        (puthash page-number (vector ov ov-margin ov-header) page-view-overlays)))
+        (puthash page-number ov page-view-overlays)))
     ))
 
 (defun page-view--make-pagebreak-left-margin-string()
@@ -476,7 +499,9 @@ START and END specify the region to clear; defaults to the whole buffer."
   (interactive)
   (remove-overlays (or start (point-min))
                    (or end   (point-max))
-                   'pagebreak t))
+                   'pagebreak t)
+  (setq page-view--max-page 1)
+  )
 
 
 (defun page-view-reset()
