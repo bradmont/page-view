@@ -280,20 +280,20 @@ the Olivetti fringe style."
 (defun page-view-move-footnotes-in-screen()
   (interactive)
   (message "move footnotes %d %d" (window-start) (window-end))
-  (page-view-move-footnotes-in-region (window-start) (window-end)))
+  (page-view-move-footnotes-in-page (window-start) (window-end)))
 
 
 ;;;;;;;;;;;;;;;;; footnote moving
 ;; TODO: debug
 ;; TODO: reflow doc on enabling/enable on starting page-view
-;; TODO: write --previous-pagebreak-overlay-pos, and use for -get-in-region
 (defun page-view-move-footnotes-in-region(start end)
   (if org-inline-footnote-mode
-      (let* ((page-end (page-view--next-pagebreak-overlay-pos)))
+      (let* (( page-start (page-view--current-page-start))
+             (page-end (or (page-view--current-page-end) end)))
         (message "page-end %d" (or page-end -1))
         (if page-end
             (mapc (lambda (ov) (move-overlay (overlay-get ov 'end-overlay) (1- page-end) (1- page-end)))
-                  (org-inline-fn-get-in-region start page-end))))))
+                  (org-inline-fn-get-in-region page-start page-end))))))
 
 ;; TODO point-max for overlays-in is terribly wasteful
 
@@ -323,6 +323,29 @@ This is the smallest page index whose overlay starts after POS."
           (setq low (1+ mid)))))
     result))
 
+(defun page-view--current-page-end (&optional page)
+  "Get the position for the end of PAGE or current page.
+Returns nil if there is no next pagebreak; this either means PAGE is near the
+end of the file (this is the last page) or that the cache has not been
+computed beyond PAGE."
+  (let* ((page (or page (page-view--current-page-number)))
+        (ov-pagebreak-end (gethash page page-view-overlays))
+        )
+    (if ov-pagebreak-end
+        (overlay-start ov-pagebreak-end)
+      nil
+      )))
+
+
+(defun page-view--current-page-start (&optional page)
+  "Get the position for the start of PAGE or current page."
+  (let* ((page (or page (1- (page-view--current-page-number))))
+        (ov (gethash page page-view-overlays))
+        )
+    (if ov
+        (overlay-start ov)
+      nil
+      )))
 
 
 
