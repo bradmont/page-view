@@ -219,9 +219,6 @@ the Olivetti fringe style."
   (if page-view-mode
       (progn
         ;; Register the jit-lock function buffer-locally
-        (if page-view-use-footnotes
-            (org-inline-footnote-mode 1)
-            )
         (setq page-view--body-face-cookie
               (face-remap-add-relative 'default (face-attr-construct 'page-view-body-face)))
 
@@ -232,6 +229,10 @@ the Olivetti fringe style."
         (add-hook 'after-change-functions #'page-view-handle-change nil t)
         (page-view-setup)
         (page-view-reset)
+
+        (if page-view-use-footnotes
+            (org-inline-footnote-mode 1)
+            )
         (page-view-jit-reflow  (window-start) (window-end))
         )
     (progn
@@ -239,6 +240,9 @@ the Olivetti fringe style."
       (remove-hook 'window-scroll-functions #'page-view--on-scroll t)
       (jit-lock-unregister #'page-view-jit-reflow)
 
+      (if page-view-use-footnotes
+          (org-inline-footnote-mode -1)
+        )
       (if page-view-debug-flag 
           (page-view-remove-debug-overlays)
         )
@@ -249,9 +253,7 @@ the Olivetti fringe style."
         (setq page-view--body-face-cookie nil))
       (page-view-reset)
 
-        (if page-view-use-footnotes
-            (org-inline-footnote-mode -1)
-            )
+        
       )))
 
 
@@ -274,13 +276,16 @@ the Olivetti fringe style."
   "Apply pagebreaks for the region between START and END buffer positions."
   ;; with our cache code adding pagebreaks as it goes, we shoud just be
   ;; able to call the cache for end line...
-  (page-view-get-cumulative-height (line-number-at-pos end))
-  (page-view-move-footnotes-in-region start end))
+  ;;
+  ;; but we add page-view-lines-per-page to ensure we get to the next break
+  (let*
+      ((line (min (+(line-number-at-pos end) page-view-lines-per-page) (line-number-at-pos (point-max)) )))
+    (page-view-get-cumulative-height line)
+    (page-view-move-footnotes-in-region start end)
+    )
 
-(defun page-view-move-footnotes-in-screen()
-  (interactive)
-  (message "move footnotes %d %d" (window-start) (window-end))
-  (page-view-move-footnotes-in-page (window-start) (window-end)))
+  )
+
 
 
 ;;;;;;;;;;;;;;;;; footnote moving
@@ -290,7 +295,6 @@ the Olivetti fringe style."
   (if org-inline-footnote-mode
       (let* (( page-start (page-view--current-page-start))
              (page-end (or (page-view--current-page-end) end)))
-        (message "page-end %d" (or page-end -1))
         (if page-end
             (mapc (lambda (ov) (move-overlay (overlay-get ov 'end-overlay) (1- page-end) (1- page-end)))
                   (org-inline-fn-get-in-region page-start page-end))))))
@@ -315,7 +319,7 @@ This is the smallest page index whose overlay starts after POS."
     (while (<= low high)
       (let* ((mid (/ (+ low high) 2))
              (ov (gethash mid page-view-overlays))
-             (start (overlay-start ov)))
+             (start (if ov (overlay-start ov) nil)))
         (if (> start pos)
             (progn
               (setq result mid)
