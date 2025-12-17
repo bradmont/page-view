@@ -281,7 +281,7 @@ the Olivetti fringe style."
   (let*
       ((line (min (+(line-number-at-pos end) page-view-lines-per-page) (line-number-at-pos (point-max)) )))
     (page-view-get-cumulative-height line)
-    (page-view-move-footnotes-in-region start end)
+    (page-view-move-footnotes-in-region (or (page-view--current-page-start) start) (or (page-view--current-page-end) end))
     )
 
   )
@@ -293,11 +293,23 @@ the Olivetti fringe style."
 ;; TODO: reflow doc on enabling/enable on starting page-view
 (defun page-view-move-footnotes-in-region(start end)
   (if org-inline-footnote-mode
-      (let* (( page-start (page-view--current-page-start))
-             (page-end (or (page-view--current-page-end) end)))
-        (if page-end
-            (mapc (lambda (ov) (move-overlay (overlay-get ov 'end-overlay) (1- page-end) (1- page-end)))
-                  (org-inline-fn-get-in-region page-start page-end))))))
+      (let ((ov-pagebreak (page-view--current-page-overlays)))
+        (if ov-pagebreak
+            (progn
+                                        ;(message "moving fn in %d to %d" start end)
+              ;(message  (prin1-to-string (org-inline-fn-get-in-region start end)))
+              (overlay-put ov-pagebreak 'after-string
+                           (concat
+                            (mapconcat
+                             (lambda (ov)
+                               (overlay-get ov 'end-string))
+                             (org-inline-fn-get-in-region start end)
+                             "\n")
+                            (overlay-get ov-pagebreak 'after-string-cookie)))
+              ;(message (overlay-get ov-pagebreak 'after-string))
+              )))))
+
+
 
 ;; TODO point-max for overlays-in is terribly wasteful
 
@@ -323,7 +335,7 @@ This is the smallest page index whose overlay starts after POS."
     (while (<= low high)
       (let* ((mid (/ (+ low high) 2))
              (ov (gethash mid page-view-overlays))
-             (start (if ov (overlay-start ov) nil)))
+             (start (if ov (overlay-start ov) 1)))
         (if (> start pos)
             (progn
               (setq result mid)
@@ -434,7 +446,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
         (overlay-put ov 'ov-header ov-header)  
 
         ;; page-break overlay
-        (overlay-put ov 'after-string
+        (overlay-put ov 'after-string-cookie
                      (concat 
                       
                       ;; the footer:
@@ -444,6 +456,8 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
                            (page-view--make-footer-string height page-number (or target-visual-line 0))))
                       ;; the pagebreak
                       (page-view--make-pagebreak-string height)))
+
+        (overlay-put ov 'after-string (overlay-get ov 'after-string-cookie))
 
         (overlay-put ov-margin 'pagebreak t)  ;; <--- mark it
         (overlay-put ov-margin 'before-string (page-view--make-pagebreak-left-margin-string))
