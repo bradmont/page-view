@@ -309,6 +309,10 @@ the Olivetti fringe style."
     (when ovs
       (overlay-start (car ovs)))))
 
+(defun page-view--current-page-overlays (&optional pos)
+  (gethash (page-view--current-page-number  pos) page-view-overlays)
+  )
+
 (defun page-view--current-page-number (&optional pos)
   "Return the page number at point or POS.
 This is the smallest page index whose overlay starts after POS."
