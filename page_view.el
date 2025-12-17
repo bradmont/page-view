@@ -343,12 +343,11 @@ computed beyond PAGE."
 
 (defun page-view--current-page-start (&optional page)
   "Get the position for the start of PAGE or current page."
-  (let* ((page (or page (1- (page-view--current-page-number))))
-        (ov (gethash page page-view-overlays))
-        )
+  (let* ((page (or page (page-view--current-page-number)))
+         (ov (when page (gethash (1- page) page-view-overlays))))
     (if ov
         (overlay-start ov)
-      nil
+      (point-min)
       )))
 
 
