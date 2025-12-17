@@ -91,46 +91,44 @@
                (content-end-marker (copy-marker (match-end 1)))
                (screen-lines (count-screen-lines (match-beginning 1) (match-end 1)) )
                ;; overlays
-               (hide-ov (make-overlay beg end))
-               (sup-ov (make-overlay beg end))
+               (hide-ov (make-overlay beg end)) ;; hide footnote definition
+               (sup-ov (make-overlay beg end)) ;; superscript for reference
                (para-end (save-excursion (goto-char beg) (forward-paragraph) (point)))
-               (end-ov (make-overlay (1- para-end) para-end)))
+               (end-string ))
+          ;; TODO: saving overlays as a string, not as an overlay.
+          ;; TODO: so instead of using move-overlay, prepend them to the after-string
+          ;; in the pagebreak ov (save the original string in the pagebreak of as a cookie)
           
+          (setq end-string
+                (propertize
+                 (concat " " sup " " content )
+                 'face 'org-inline-fn-overlay-face
+                 'mouse-face 'highlight
+                 'keymap (let ((map (make-sparse-keymap)))
+                           (define-key map [mouse-1]
+                                       (lambda (event)
+                                         (interactive "e")
+                                         (org-inline-fn-edit-marker
+                                          content-beg-marker
+                                          content-end-marker)))
+                           map)))
           ;; hide original
           (overlay-put hide-ov 'invisible t)
+           
           ;; Apply read-only as a text property to the original inline footnote/citation
           (put-text-property beg end 'read-only t)
 
           ;; inline superscript
           (overlay-put sup-ov 'after-string sup)
           (overlay-put sup-ov 'read-only t)
+          (overlay-put sup-ov 'fn-index fn-index)
           (overlay-put sup-ov 'footnote t)
-          (overlay-put sup-ov 'end-overlay end-ov)
-
-          ;; footnote/citation at paragraph end: keymap attached to the after-string itself
-          ;; 
-          (overlay-put end-ov 'org-inline-fn-beg beg-marker)
-          (overlay-put end-ov 'org-inline-fn-end end-marker)
-          (overlay-put end-ov 'after-string
-                       (propertize
-                        (concat " " sup " " content "\n")
-                        'face 'org-inline-fn-overlay-face
-                        'mouse-face 'highlight
-                        'keymap (let ((map (make-sparse-keymap)))
-                                  (define-key map [mouse-1]
-                                              (lambda (event)
-                                                (interactive "e")
-                                                (org-inline-fn-edit-marker
-                                                 content-beg-marker
-                                                 content-end-marker)))
-                                  map)))
-
-          
+          (overlay-put sup-ov 'end-string end-string)
+          (overlay-put sup-ov 'end-string-cookie end-string)
 
           ;; store overlays
           (push hide-ov org-inline-fn--overlays)
           (push sup-ov org-inline-fn--overlays)
-          (push end-ov org-inline-fn--overlays)
 
           ;; increment global counter
           (setq fn-index (1+ fn-index)))))))
