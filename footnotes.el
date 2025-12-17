@@ -36,17 +36,10 @@
 
 (defvar org-inline-fn--overlays nil)
 
-(defun org-inline-fn-clear ()
-  "Remove all paragraph-end inline footnote overlays."
-  (interactive)
-  (mapc #'delete-overlay org-inline-fn--overlays)
-  (setq org-inline-fn--overlays nil))
 
 (defface org-inline-fn-overlay-face
   '((t :height 0.8 :inherit shadow))
   "Face for paragraph-end inline footnote content.")
-
-(defvar org-inline-fn--overlays nil)
 
 
 (defun org-inline-fn-clear ()
