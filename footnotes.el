@@ -49,7 +49,10 @@
   (interactive)
   ;; delete overlays
   (mapc #'delete-overlay org-inline-fn--overlays)
-  (setq org-inline-fn--overlays nil)
+
+  (setq org-inline-fn--overlays nil
+        org-inline-fn--last-valid-index 0
+        org-inline-fn--last-valid-line nil)
   ;; remove read-only from the original text
   (save-excursion
     (goto-char (point-min))
@@ -76,12 +79,27 @@
   "Hide inline fn:: and cite: notes and replace them with overlays."
   (interactive)
   (org-inline-fn-clear)
-  (setq org-inline-fn--last-valid-index 0
-        org-inline-fn--last-valid-line nil)
   (org-inline-fn--process-region (point-min) (point-max)))
 
 (defun org-inline-fn--process-region (beg end)
   "Process inline fn:: and cite: notes between BEG and END."
+
+  (let ((beg-line (line-number-at-pos beg)))
+    (cond
+     ;; Case 1: BEG is before cached state → invalidate
+     ((and org-inline-fn--last-valid-line
+           (<= beg-line org-inline-fn--last-valid-line))
+      (org-inline-fn--invalidate-from-line beg-line))
+
+     ;; Case 2: BEG is after cached state → rewind BEG
+     ((and org-inline-fn--last-valid-line
+           (> beg-line org-inline-fn--last-valid-line))
+      (setq beg
+            (save-excursion
+              (goto-char (point-min))
+              (forward-line (1- org-inline-fn--last-valid-line))
+              (point))))))
+
   (save-excursion
     (goto-char beg)
     (while (re-search-forward
