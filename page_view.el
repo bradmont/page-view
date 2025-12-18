@@ -605,15 +605,17 @@ Set by `page-view-handle-change` and used for incremental recomputation.")
   "Invalidate cached line-height properties for lines touched by the change."
   ;; Remove the 'line-height property from the changed region
   ;; 
-  ;(message "(page-view-handle-change %d %d %d)" beg end _len) 
-  (remove-text-properties beg (min (1+ end) (point-max)) '(page-view-line-height nil))
-  ;; Optionally track the first invalidated line for incremental recalculation
-  (let ((line (line-number-at-pos beg)))
-    (setq page-view-cache-invalid-from
-          (min (or page-view-cache-invalid-from 1) line)
-          ))
-  (page-view-set-line-height)
-  (page-view-get-cumulative-height (line-number-at-pos (window-end))))
+                                        ;(message "(page-view-handle-change %d %d %d)" beg end _len)
+                                        ;
+  (let ((inhibit-read-only t))
+    (remove-text-properties beg (min (1+ end) (point-max)) '(page-view-line-height nil))
+    ;; Optionally track the first invalidated line for incremental recalculation
+    (let ((line (line-number-at-pos beg)))
+      (setq page-view-cache-invalid-from
+            (min (or page-view-cache-invalid-from 1) line)
+            ))
+    (page-view-set-line-height)
+    (page-view-get-cumulative-height (line-number-at-pos (window-end)))))
 
 
 (defun page-view-get-line-height (&optional line)

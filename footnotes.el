@@ -37,10 +37,6 @@
 (defvar org-inline-fn--overlays nil)
 
 
-(defface org-inline-fn-overlay-face
-  '((t :height 0.8 :inherit shadow))
-  "Face for paragraph-end inline footnote content.")
-
 
 (defun org-inline-fn-clear ()
   "Remove all paragraph-end inline footnote/citation overlays and restore original text properties."
@@ -103,6 +99,7 @@
                 (propertize
                  (concat " " sup " " content )
                  'face 'org-inline-fn-overlay-face
+                 'line-height 1.0
                  'mouse-face 'highlight
                  'keymap (let ((map (make-sparse-keymap)))
                            (define-key map [mouse-1]
@@ -153,11 +150,7 @@
               (overlays-in beg end)))
 
 
-;; Usage:
-;; M-x org-inline-fn-visualize   → inline superscripts + text at paragraph end
-;; M-x org-inline-fn-clear       → restore original appearance
 
 
-
-(provide 'org-inline-footnotes)
+(provide 'org-inline-fn)
 ;;; footnotes.el ends here
