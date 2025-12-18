@@ -36,6 +36,12 @@
 
 (defvar org-inline-fn--overlays nil)
 
+(defvar-local org-inline-fn--last-valid-index 0
+  "Last footnote index assigned in this buffer.")
+
+(defvar-local org-inline-fn--last-valid-line nil
+  "Physical line number of the last indexed footnote.")
+
 
 
 (defun org-inline-fn-clear ()
@@ -65,70 +71,77 @@
     (if (string-empty-p res) "⁰" res)))
 
 
+
 (defun org-inline-fn-visualize ()
-  "Hide [fn::...] and [cite:...] inline references and show numbered overlays at paragraph ends."
+  "Hide inline fn:: and cite: notes and replace them with overlays."
   (interactive)
   (org-inline-fn-clear)
+  (setq org-inline-fn--last-valid-index 0
+        org-inline-fn--last-valid-line nil)
+  (org-inline-fn--process-region (point-min) (point-max)))
+
+(defun org-inline-fn--process-region (beg end)
+  "Process inline fn:: and cite: notes between BEG and END."
   (save-excursion
-    (goto-char (point-min))
-    (let ((fn-index 1)) ;; global counter
-      ;; search the whole buffer
-      (while (re-search-forward
-              "\\[\\(?:fn::\\|cite:\\)\\(\\(?:[^][]\\|\\[[^]]*\\]\\)+\\)\\]" nil t)
+    (goto-char beg)
+    (while (re-search-forward
+            "\\[\\(?:fn::\\|cite:\\)\\(\\(?:[^][]\\|\\[[^]]*\\]\\)+\\)\\]"
+            end t)
+      (let* ((fn-index (1+ org-inline-fn--last-valid-index))
+             (content (match-string 1))
+             (match-beg (match-beginning 0))
+             (match-end (match-end 0))
+             (sup (org-inline-fn--superscript fn-index))
 
-        (let* ((content (match-string 1))
-               (beg (match-beginning 0))
-               (end (match-end 0))
-               (sup (org-inline-fn--superscript fn-index))
-               ;; markers for the hidden original text
-               (beg-marker (copy-marker beg))
-               (end-marker (copy-marker end))
-               (content-beg-marker (copy-marker (match-beginning 1)))
-               (content-end-marker (copy-marker (match-end 1)))
-               (screen-lines (count-screen-lines (match-beginning 1) (match-end 1)) )
-               ;; overlays
-               (hide-ov (make-overlay beg end)) ;; hide footnote definition
-               (sup-ov (make-overlay beg end)) ;; superscript for reference
-               (para-end (save-excursion (goto-char beg) (forward-paragraph) (point)))
-               (end-string ))
-          ;; TODO: saving overlays as a string, not as an overlay.
-          ;; TODO: so instead of using move-overlay, prepend them to the after-string
-          ;; in the pagebreak ov (save the original string in the pagebreak of as a cookie)
-          
-          (setq end-string
-                (propertize
-                 (concat " " sup " " content )
-                 'face 'org-inline-fn-overlay-face
-                 'line-height 1.0
-                 'mouse-face 'highlight
-                 'keymap (let ((map (make-sparse-keymap)))
-                           (define-key map [mouse-1]
-                                       (lambda (event)
-                                         (interactive "e")
-                                         (org-inline-fn-edit-marker
-                                          content-beg-marker
-                                          content-end-marker)))
-                           map)))
-          ;; hide original
-          (overlay-put hide-ov 'invisible t)
-           
-          ;; Apply read-only as a text property to the original inline footnote/citation
-          (put-text-property beg end 'read-only t)
+             ;; markers
+             (content-beg-marker (copy-marker (match-beginning 1)))
+             (content-end-marker (copy-marker (match-end 1)))
 
-          ;; inline superscript
-          (overlay-put sup-ov 'after-string sup)
-          (overlay-put sup-ov 'read-only t)
-          (overlay-put sup-ov 'fn-index fn-index)
-          (overlay-put sup-ov 'footnote t)
-          (overlay-put sup-ov 'end-string end-string)
-          (overlay-put sup-ov 'end-string-cookie end-string)
+             ;; overlays
+             (hide-ov (make-overlay match-beg match-end))
+             (sup-ov  (make-overlay match-beg match-end))
 
-          ;; store overlays
-          (push hide-ov org-inline-fn--overlays)
-          (push sup-ov org-inline-fn--overlays)
+             ;; bookkeeping
+             (line (line-number-at-pos match-beg))
+             end-string)
 
-          ;; increment global counter
-          (setq fn-index (1+ fn-index)))))))
+        ;; build end-string
+        (setq end-string
+              (propertize
+               (concat " " sup " " content)
+               'face 'org-inline-fn-overlay-face
+               'line-height 1.0
+               'mouse-face 'highlight
+               'keymap
+               (let ((map (make-sparse-keymap)))
+                 (define-key map [mouse-1]
+                   (lambda (_event)
+                     (interactive)
+                     (org-inline-fn-edit-marker
+                      content-beg-marker
+                      content-end-marker)))
+                 map)))
+
+        ;; hide original
+        (overlay-put hide-ov 'invisible t)
+        (put-text-property match-beg match-end 'read-only t)
+
+        ;; superscript overlay
+        (overlay-put sup-ov 'after-string sup)
+        (overlay-put sup-ov 'read-only t)
+        (overlay-put sup-ov 'footnote t)
+        (overlay-put sup-ov 'fn-index fn-index)
+        (overlay-put sup-ov 'end-string end-string)
+        (overlay-put sup-ov 'end-string-cookie end-string)
+
+        ;; track overlays
+        (push hide-ov org-inline-fn--overlays)
+        (push sup-ov  org-inline-fn--overlays)
+
+        ;; update buffer-local state
+        (setq org-inline-fn--last-valid-index fn-index)
+        (setq org-inline-fn--last-valid-line line)))))
+
 
 (defun org-inline-fn-edit-marker (beg-marker end-marker)
   "Edit the footnote/citation text at markers in a popup buffer."
