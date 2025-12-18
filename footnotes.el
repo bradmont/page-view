@@ -142,6 +142,33 @@
         (setq org-inline-fn--last-valid-index fn-index)
         (setq org-inline-fn--last-valid-line line)))))
 
+(defun org-inline-fn--invalidate-from-line (line)
+  "Invalidate inline-footnote cache starting from LINE (exclusive).
+Only footnotes strictly before LINE are considered valid."
+  (let ((last-valid-ov nil)
+        (last-valid-line 0)
+        (last-valid-index 0))
+    ;; find the last valid footnote strictly before LINE
+    (dolist (ov org-inline-fn--overlays)
+      (when (and (overlay-get ov 'footnote)
+                 (< (line-number-at-pos (overlay-start ov)) line))
+        (when (or (not last-valid-ov)
+                  (> (overlay-start ov)
+                     (overlay-start last-valid-ov)))
+          (setq last-valid-ov ov
+                last-valid-line (line-number-at-pos (overlay-start ov))
+                last-valid-index (overlay-get ov 'fn-index)))))
+    ;; delete overlays after the last valid line
+    (setq org-inline-fn--overlays
+          (cl-delete-if
+           (lambda (ov)
+             (> (line-number-at-pos (overlay-start ov))
+                last-valid-line))
+           org-inline-fn--overlays))
+    ;; update cache
+    (setq org-inline-fn--last-valid-line last-valid-line
+          org-inline-fn--last-valid-index last-valid-index)))
+
 
 (defun org-inline-fn-edit-marker (beg-marker end-marker)
   "Edit the footnote/citation text at markers in a popup buffer."
