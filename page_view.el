@@ -256,12 +256,33 @@ the Olivetti fringe style."
         
       )))
 
-
+
+;;;;; event handlers/reflow
 (defun page-view-jit-reflow (start end)
   "Reflow pages for lines in the redisplay region."
   (page-view--reflow-screen start end)
   )
 
+(defun page-view--on-scroll (window display-start)
+  "Hook function for `window-scroll-functions` to apply pagebreaks."
+  (page-view--reflow-screen display-start (window-end window t)))
+
+
+(defun page-view-handle-change (beg end _len)
+  "Invalidate cached line-height properties for lines touched by the change."
+  ;; Remove the 'line-height property from the changed region
+  ;; 
+                                        ;(message "(page-view-handle-change %d %d %d)" beg end _len)
+                                        ;
+  (let ((inhibit-read-only t))
+    (remove-text-properties beg (min (1+ end) (point-max)) '(page-view-line-height nil))
+    ;; Optionally track the first invalidated line for incremental recalculation
+    (let ((line (line-number-at-pos beg)))
+      (setq page-view-cache-invalid-from
+            (min (or page-view-cache-invalid-from 1) line)
+            ))
+    
+    ))
 
 (defun page-view-reflow-screen ()
   "Apply pagebreaks on region currently visible in window"
@@ -313,13 +334,8 @@ the Olivetti fringe style."
 
 ;; TODO point-max for overlays-in is terribly wasteful
 
-(defun page-view--next-pagebreak-overlay-pos (&optional pos)
-  "Return the start position of the next overlay with 'pagebreak t after POS (or point)."
-  (let* ((start (or pos (point)))
-         (ovs (seq-filter (lambda (ov) (eq (overlay-get ov 'pagebreak) t))
-                          (overlays-in start (point-max)))))
-    (when ovs
-      (overlay-start (car ovs)))))
+
+;;;;;;;;;;;;;;;;; helpers for current page
 
 (defun page-view--current-page-overlays (&optional pos)
   (gethash (page-view--current-page-number  pos) page-view-overlays)
@@ -385,12 +401,10 @@ best if (point) is already relatively near the target visual-line."
     (forward-line -1))
   (line-move-visual (- visual-line (page-view-get-cumulative-height) 1 )))
 
-(defun page-view--on-scroll (window display-start)
-  "Hook function for `window-scroll-functions` to apply pagebreaks."
-  (page-view--reflow-screen display-start (window-end window t)))
 
 
-
+
+;;;;;;; applying pagebreak
 (defun page-view-maybe-apply-pagebreak (cumulative-height line-height)
   "Check if we need to apply a pagebreak here, between CUMULATIVE-HEIGHT and
 CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
@@ -535,7 +549,8 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
       (propertize " " 'display `((space :width , (+ 2 (window-text-width)) :height ,height))) "\n"
       )
      'face 'page-view-header-face)))
-
+
+;;;;;; clearing & resetting
 
 (defun page-view-clear (&optional start end)
   "Remove all page-break overlays created by `page-view-apply-pagebreak`.
@@ -601,21 +616,6 @@ LINE is 1-based and defaults to the current line."
   "First physical line number with invalid cached line height.
 Set by `page-view-handle-change` and used for incremental recomputation.")
 
-(defun page-view-handle-change (beg end _len)
-  "Invalidate cached line-height properties for lines touched by the change."
-  ;; Remove the 'line-height property from the changed region
-  ;; 
-                                        ;(message "(page-view-handle-change %d %d %d)" beg end _len)
-                                        ;
-  (let ((inhibit-read-only t))
-    (remove-text-properties beg (min (1+ end) (point-max)) '(page-view-line-height nil))
-    ;; Optionally track the first invalidated line for incremental recalculation
-    (let ((line (line-number-at-pos beg)))
-      (setq page-view-cache-invalid-from
-            (min (or page-view-cache-invalid-from 1) line)
-            ))
-    (page-view-set-line-height)
-    (page-view-get-cumulative-height (line-number-at-pos (window-end)))))
 
 
 (defun page-view-get-line-height (&optional line)
