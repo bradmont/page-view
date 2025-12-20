@@ -321,6 +321,7 @@ the Olivetti fringe style."
               ;(message  (prin1-to-string (org-inline-fn-get-in-region start end)))
               (overlay-put ov-pagebreak 'after-string
                            (concat
+                            "\n"
                             (mapconcat
                              (lambda (ov)
                                (overlay-get ov 'end-string))
@@ -365,10 +366,10 @@ Returns nil if there is no next pagebreak; this either means PAGE is near the
 end of the file (this is the last page) or that the cache has not been
 computed beyond PAGE."
   (let* ((page (or page (page-view--current-page-number)))
-        (ov-pagebreak-end (gethash page page-view-overlays))
+        (ov (gethash page page-view-overlays))
         )
-    (if ov-pagebreak-end
-        (overlay-start ov-pagebreak-end)
+    (if ov
+        (overlay-start ov)
       nil
       )))
 
@@ -421,6 +422,7 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
           
           (save-excursion
             (line-move-visual (- target-visual-line cumulative-height) )
+            (message "aplying break at %d" (line-number-at-pos))
             (page-view-apply-pagebreak this-page target-visual-line))))))
 
 
@@ -443,7 +445,7 @@ PAGE-NUMBER is displayed. HEIGHT is the number of empty lines for spacing (defau
          (pad  (/ (- (or olivetti-body-width fill-column) (length label) ) 2)))
 
     (if page-view-debug-flag
-        (message "page-break : %s" label))
+        (message "page-break : %s at point %d" label (point)))
 
     (if ov
         (progn ;; move existing overlays
@@ -679,16 +681,15 @@ LINE defaults to the current line. Uses and updates cached
 
             ;; if no cumulative-height is stored, we're on line 1
             ;; Add this line's height if necessary.
-            (if (= cumulative-height 0)
+            (if (= (line-number-at-pos) 1)
               (page-view-apply-pagebreak 0)
               )
 
 
+            (page-view-maybe-debug (page-view-get-line-height) cumulative-height)
             ;; Walk forward until reaching the requested line.
             (while (< (line-number-at-pos) line)
-              (forward-line 1)
               (page-view-maybe-apply-pagebreak cumulative-height (page-view-get-line-height))
-              (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
               (page-view-maybe-debug (page-view-get-line-height) cumulative-height)
 
                                         ;(put-text-property (point) (1+ (point))
@@ -702,7 +703,11 @@ LINE defaults to the current line. Uses and updates cached
                                  'page-view-cumulative-height cumulative-height)
 
               ;; Update invalid-from pointer.
-            (setq page-view-cache-invalid-from (1+ line)))
+            (setq cumulative-height (+ cumulative-height (page-view-get-line-height)))
+            (setq page-view-cache-invalid-from (1+ line))
+
+              (forward-line 1)
+            )
             cumulative-height))
 
       ;; Cache already valid for this line: just fetch.
@@ -738,7 +743,7 @@ Lines without cached heights show nil for that component."
 (defun page-view-clear-all-line-metadata ()
   "Remove all page-view line height and cumulative height properties from the buffer."
   (interactive)
-  (setq page-view-cache-invalid-from 1)
+  (setq page-view-cache-invalid-from nil)
   (remove-text-properties (point-min) (point-max)
                           '(page-view-line-height nil
                             page-view-cumulative-height nil)))
