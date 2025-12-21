@@ -2,7 +2,7 @@
 
 ;; Author: Brad Stewart
 ;; Version: 0.2
-;; Package-Requires: ((emacs "25.1") (olivetti "0"))
+;; Package-Requires: ((emacs "29.1") (olivetti "0"))
 ;; Keywords: style, editing, word processing
 ;; URL: https://github.com/bradmont/page-view
 
@@ -679,11 +679,18 @@ LINE defaults to the current line. Uses and updates cached
           (let ((cumulative-height (or (get-text-property (point) 'page-view-cumulative-height)
                                        0 ))) ;; we are on a cached line;
 
-            ;; if no cumulative-height is stored, we're on line 1
-            ;; Add this line's height if necessary.
+            ;; if no cumulative-height is stored, we're either on line 1 or have somehow
+            ;; wound up after the end of the cache. Apply page 1 header or walk-back a
+            ;; line as necessary
             (if (= (line-number-at-pos) 1)
               (page-view-apply-pagebreak 0)
-              )
+              (if (= cumulative-height 0)
+                  ;; this is an error case... TODO should not happen, find out why
+                  (progn
+                  (forward-line -1)
+                  (setq cumulative-height (get-text-property (point) 'page-view-cumulative-height))
+                  )
+                ))
 
 
             (page-view-maybe-debug (page-view-get-line-height) cumulative-height)
