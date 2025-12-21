@@ -34,7 +34,7 @@
   `((t :inherit page-view-body-face
        :height 0.8
        :slant normal
-       :foreground nil     ;; keep the inherited one
+       :foreground ,(face-foreground 'default nil 'default)
        :background ,(face-background 'default nil 'default)
        :underline nil
        :box nil
@@ -146,7 +146,7 @@
                'keymap
                (let ((map (make-sparse-keymap)))
                  (define-key map [mouse-1]
-                   (lambda (_event)
+                   (lambda ()
                      (interactive)
                      (org-inline-fn-edit-marker
                       content-beg-marker
