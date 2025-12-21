@@ -31,8 +31,21 @@
 
 ;; Face for rendered paragraph-end footnotes
 (defface org-inline-fn-overlay-face
-  '((t :height 0.8 :slant normal :inherit shadow))
-  "Face used for paragraph-end inline footnote overlays.")
+  `((t :inherit page-view-body-face
+       :height 0.8
+       :slant normal
+       :foreground nil     ;; keep the inherited one
+       :background ,(face-background 'default nil 'default)
+       :underline nil
+       :box nil
+       :overline nil
+       :strike-through nil
+       :inverse-video nil
+       :weight normal
+       :family unspecified
+       :inherit-shadow t)) ;; optional, may need :foreground "gray40" for subtle shadow
+  "Face for inline footnote overlays, scaled and slanted, but copying page-view-body-face attributes.")
+
 
 (defvar org-inline-fn--overlays nil)
 
