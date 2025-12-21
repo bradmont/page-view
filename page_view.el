@@ -319,17 +319,19 @@ the Olivetti fringe style."
             (progn
                                         ;(message "moving fn in %d to %d" start end)
               ;(message  (prin1-to-string (org-inline-fn-get-in-region start end)))
+              ;
               (overlay-put ov-pagebreak 'after-string
-                           (concat
-                            "\n"
-                            (mapconcat
-                             (lambda (ov)
-                               (overlay-get ov 'fn-string))
-                             (org-inline-fn-get-in-region start end)
-                             "\n")
-                            (overlay-get ov-pagebreak 'after-string-cookie)))
-              ;(message (overlay-get ov-pagebreak 'after-string))
-              )))))
+                           (let ((notes (org-inline-fn-get-in-region start end)))
+                             (concat
+                              "\n\n"
+                              (when notes
+                                (propertize (concat (make-string 10 ?─) "\n")'face 'org-inline-fn-overlay-face)) ;; 20-char horizontal line
+                              (mapconcat
+                               (lambda (ov)
+                                 (overlay-get ov 'fn-string))
+                               notes
+                               "\n")
+                              (overlay-get ov-pagebreak 'after-string-cookie)))))))))
 
 
 
