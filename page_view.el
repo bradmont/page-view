@@ -324,7 +324,7 @@ the Olivetti fringe style."
                             "\n"
                             (mapconcat
                              (lambda (ov)
-                               (overlay-get ov 'end-string))
+                               (overlay-get ov 'fn-string))
                              (org-inline-fn-get-in-region start end)
                              "\n")
                             (overlay-get ov-pagebreak 'after-string-cookie)))

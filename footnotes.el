@@ -121,10 +121,10 @@
 
              ;; bookkeeping
              (line (line-number-at-pos match-beg))
-             end-string)
+             fn-string fn-height)
 
-        ;; build end-string
-        (setq end-string
+        ;; build fn-string
+        (setq fn-string
               (propertize
                (concat " " sup " " content)
                'face 'org-inline-fn-overlay-face
@@ -140,6 +140,10 @@
                       content-end-marker)))
                  map)))
 
+        ;; approximate, but that's ok.
+        (setq fn-height (let* ((pixels (string-pixel-width fn-string))
+                               (line-width (window-body-width nil t)))
+                          (ceiling (/ (float pixels) line-width))))
         ;; hide original
         (overlay-put hide-ov 'invisible t)
         (put-text-property match-beg match-end 'read-only t)
@@ -149,8 +153,11 @@
         (overlay-put sup-ov 'read-only t)
         (overlay-put sup-ov 'footnote t)
         (overlay-put sup-ov 'fn-index fn-index)
-        (overlay-put sup-ov 'end-string end-string)
-        (overlay-put sup-ov 'end-string-cookie end-string)
+        (overlay-put sup-ov 'fn-string fn-string)
+        (overlay-put sup-ov 'fn-string-cookie fn-string)
+        (overlay-put sup-ov 'fn-height fn-height)
+        (message "fontnote %d height %d" fn-index fn-height)
+
 
         ;; track overlays
         (push hide-ov org-inline-fn--overlays)
