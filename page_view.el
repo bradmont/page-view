@@ -580,21 +580,32 @@ START and END specify the region to clear; defaults to the whole buffer."
 ;;;;;; mostly working, but reflowing while typing is broken
 
 (defun page-view-compute-line-height (&optional line)
-  "Compute the visual height of a physical line.
+  "Compute the visual height of a physical line, including footnotes.
 LINE is the 1-based line number (defaults to the current line)."
   (save-excursion
-    (let* ((start (if line ;; if we don't need to move, don't waste oerations
+    ;; move to the start of the requested line
+    (let* ((start (if line
                       (progn
                         (goto-char (point-min))
                         (forward-line (1- line))
                         (point))
                     (beginning-of-line)
                     (point)))
-           (end (line-end-position)))
-      ;; count-screen-lines returns the number of screen lines
-      ;; the region occupies, including wrapping
-      (if (= start end) 1 (count-screen-lines start end)) ; every line 
-      )))
+           (end (line-end-position))
+           ;; base line height including wrapping
+           (base-height (if (= start end)
+                            1
+                          (count-screen-lines start end)))
+           ;; sum of footnote heights on this line
+           ;; NOTE: line counts are approximate, and are not adjusted
+           ;; based on relative font size
+           ;; TODO : there may be a bug moving to target-line
+           ;; if a pagebreak falls in a paragraph with long footnotes
+           (fn-height (apply #'+
+                             (mapcar (lambda (ov)
+                                       (or (overlay-get ov 'fn-height) 0))
+                                     (org-inline-fn-get-in-region start end)))))
+      (+ base-height fn-height))))
 
 (defun page-view-set-line-height (&optional line)
   "Compute and store the visual height of a physical LINE as a text property.
