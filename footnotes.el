@@ -2,14 +2,13 @@
 ;;
 ;; Copyright (C) 2025 Brad Stewart
 ;;
-;; Author: Brad Stewart <brad@bradstewart.ca>
-;; Maintainer: Brad Stewart <brad@bradstewart.ca>
-;; Created: décembre 06, 2025
-;; Modified: décembre 06, 2025
-;; Version: 0.0.1
-;; Keywords: abbrev bib c calendar comm convenience data docs emulations extensions faces files frames games hardware help hypermedia i18n internal languages lisp local maint mail matching mouse multimedia news outlines processes terminals tex text tools unix vc wp
-;; Homepage: https://github.com/brad/footnotes
-;; Package-Requires: ((emacs "24.3"))
+;; Author: Brad Stewart <brad@bradstewart.ca> Maintainer: Brad Stewart
+;; <brad@bradstewart.ca> Created: décembre 06, 2025 Modified: décembre 06, 2025
+;; Version: 0.0.1 Keywords: abbrev bib c calendar comm convenience data docs
+;; emulations extensions faces files frames games hardware help hypermedia i18n
+;; internal languages lisp local maint mail matching mouse multimedia news
+;; outlines processes terminals tex text tools unix vc wp Homepage:
+;; https://github.com/brad/footnotes Package-Requires: ((emacs "24.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -25,7 +24,8 @@
   "Toggle inline footnotes visualization."
   :lighter " FN"
   (if org-inline-footnote-mode
-      (org-inline-fn-visualize)
+      (ignore)
+      ;(org-inline-fn-visualize)
     (org-inline-fn-clear)))
 
 
@@ -47,13 +47,6 @@
   "Face for inline footnote overlays, scaled and slanted, but copying page-view-body-face attributes.")
 
 
-(defvar org-inline-fn--overlays nil)
-
-(defvar-local org-inline-fn--last-valid-index 0
-  "Last footnote index assigned in this buffer.")
-
-(defvar-local org-inline-fn--last-valid-line nil
-  "Physical line number of the last indexed footnote.")
 
 
 
@@ -61,11 +54,10 @@
   "Remove all paragraph-end inline footnote/citation overlays and restore original text properties."
   (interactive)
   ;; delete overlays
-  (mapc #'delete-overlay org-inline-fn--overlays)
 
-  (setq org-inline-fn--overlays nil
-        org-inline-fn--last-valid-index 0
-        org-inline-fn--last-valid-line nil)
+  (let ((inhibit-read-only t))
+    (remove-overlays (point-min) (point-max) 'footnote t))
+
   ;; remove read-only from the original text
   (save-excursion
     (goto-char (point-min))
@@ -94,31 +86,24 @@
   (org-inline-fn-clear)
   (org-inline-fn--process-region (point-min) (point-max)))
 
-(defun org-inline-fn--process-region (beg end)
+(defun org-inline-fn--process-line (&optional last-index)
+  "Process inline fn:: and cite: notes in current line"
+  (save-excursion
+    (beginning-of-line)
+    (org-inline-fn--process-region (point) (line-end-position) last-index)))
+
+(defun org-inline-fn--process-region (beg end &optional last-index)
   "Process inline fn:: and cite: notes between BEG and END."
 
-  (let ((beg-line (line-number-at-pos beg)))
-    (cond
-     ;; Case 1: BEG is before cached state → invalidate
-     ((and org-inline-fn--last-valid-line
-           (<= beg-line org-inline-fn--last-valid-line))
-      (org-inline-fn--invalidate-from-line beg-line))
-
-     ;; Case 2: BEG is after cached state → rewind BEG
-     ((and org-inline-fn--last-valid-line
-           (> beg-line org-inline-fn--last-valid-line))
-      (setq beg
-            (save-excursion
-              (goto-char (point-min))
-              (forward-line (1- org-inline-fn--last-valid-line))
-              (point))))))
-
+    ;(org-inline-fn--invalidate-from-line (line-number-at-pos beg))
+  (org-inline-fn--delete-in-region beg end)
+  (setq last-index (or last-index 0))
   (save-excursion
     (goto-char beg)
     (while (re-search-forward
             "\\[\\(?:fn::\\|cite:\\)\\(\\(?:[^][]\\|\\[[^]]*\\]\\)+\\)\\]"
             end t)
-      (let* ((fn-index (1+ org-inline-fn--last-valid-index))
+      (let* ((fn-index (1+ last-index ))
              (content (match-string 1))
              (match-beg (match-beginning 0))
              (match-end (match-end 0))
@@ -136,6 +121,7 @@
              (line (line-number-at-pos match-beg))
              fn-string fn-height)
 
+        (setq last-index (1+ last-index))
         ;; build fn-string
         (setq fn-string
               (propertize
@@ -154,12 +140,16 @@
                  map)))
 
         ;; approximate, but that's ok.
-        (setq fn-height (let* ((pixels (string-pixel-width fn-string))
-                               (line-width (window-body-width nil t)))
-                          (ceiling (/ (float pixels) line-width))))
+        ;; 
+        (let ((inhibit-read-only t))
+          (setq fn-height (let* ((pixels (string-pixel-width fn-string))
+                                 (line-width (window-body-width nil t)))
+                            (ceiling (/ (float pixels) line-width)))))
         ;; hide original
         (overlay-put hide-ov 'invisible t)
         (put-text-property match-beg match-end 'read-only t)
+        (overlay-put hide-ov 'footnote t)
+        (overlay-put hide-ov 'sup-ov sup-ov)
 
         ;; superscript overlay
         (overlay-put sup-ov 'after-string sup)
@@ -169,43 +159,18 @@
         (overlay-put sup-ov 'fn-string fn-string)
         (overlay-put sup-ov 'fn-string-cookie fn-string)
         (overlay-put sup-ov 'fn-height fn-height)
-        (message "fontnote %d height %d" fn-index fn-height)
-
-
-        ;; track overlays
-        (push hide-ov org-inline-fn--overlays)
-        (push sup-ov  org-inline-fn--overlays)
-
-        ;; update buffer-local state
-        (setq org-inline-fn--last-valid-index fn-index)
-        (setq org-inline-fn--last-valid-line line)))))
+        (message "fontnote %d height %d last-index %d" fn-index fn-height last-index))))
+    (page-view--set-line-metadata 'org-inline-fn-last-index last-index))
 
 (defun org-inline-fn--invalidate-from-line (line)
   "Invalidate inline-footnote cache starting from LINE (exclusive).
 Only footnotes strictly before LINE are considered valid."
-  (let ((last-valid-ov nil)
-        (last-valid-line 0)
-        (last-valid-index 0))
-    ;; find the last valid footnote strictly before LINE
-    (dolist (ov org-inline-fn--overlays)
-      (when (and (overlay-get ov 'footnote)
-                 (< (line-number-at-pos (overlay-start ov)) line))
-        (when (or (not last-valid-ov)
-                  (> (overlay-start ov)
-                     (overlay-start last-valid-ov)))
-          (setq last-valid-ov ov
-                last-valid-line (line-number-at-pos (overlay-start ov))
-                last-valid-index (overlay-get ov 'fn-index)))))
-    ;; delete overlays after the last valid line
-    (setq org-inline-fn--overlays
-          (cl-delete-if
-           (lambda (ov)
-             (> (line-number-at-pos (overlay-start ov))
-                last-valid-line))
-           org-inline-fn--overlays))
-    ;; update cache
-    (setq org-inline-fn--last-valid-line last-valid-line
-          org-inline-fn--last-valid-index last-valid-index)))
+
+  (save-excursion
+    (goto-char (point-min))
+    (forward-line (1- line))
+    (beginning-of-line)
+    (org-inline-fn--delete-in-region ((point) (point-max)))))
 
 
 (defun org-inline-fn-edit-marker (beg-marker end-marker)
@@ -221,12 +186,27 @@ Only footnotes strictly before LINE are considered valid."
         ;; refresh overlays
         (org-inline-fn-visualize)))))
 
+(defun org-inline-fn-get-in-line ()
+
+  (save-excursion
+    (goto-char (point-min))
+    (forward-line (1- line))
+    (beginning-of-line)
+    (org-inline-fn--get-in-region ((point) (line-end-position)))))
+  
+
 (defun org-inline-fn-get-in-region (beg end)
   "Return a list of footnotes in region BEG to END."
   (seq-filter (lambda (ov)
                 (eq (overlay-get ov 'footnote) t))
               (overlays-in beg end)))
 
+(defun org-inline-fn--delete-in-region (beg end)
+
+  (let ((inhibit-read-only t))
+    (mapc (lambda (ov)
+            (delete-overlay ov))
+            (org-inline-fn-get-in-region beg end))))
 
 
 

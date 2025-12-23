@@ -118,13 +118,13 @@ processer Times New Roman 12 point, 1.5 spacing.")
 
 
 
-(defun page-view-debug-overlay (height cumulative-height)
+(defun page-view-debug-overlay (height cumulative-height last-fn-index)
   "Display a small overlay in the left fringe showing HEIGHT and
 CUMULATIVE-HEIGHT for the current line."
   (message "line %d: height: %d ch: %d" (line-number-at-pos) height cumulative-height)
   (let* ((start (save-excursion (beginning-of-line) (point)))
          (ov (make-overlay start (max (1+ start) (point-max))))
-         (label (format "%d+%d" cumulative-height height)))
+         (label (format "%d+%d,%d" cumulative-height height (or last-fn-index -1))))
 
     (remove-overlays (max (1- start) (point-min))
                      (point-max)
@@ -145,10 +145,10 @@ CUMULATIVE-HEIGHT for the current line."
                      (point-max)
                      'page-view-debug t))
 
-(defun page-view-maybe-debug (height cumulative)
+(defun page-view-maybe-debug (height cumulative last-fn-index)
   "Emit a debug overlay call if `page-view-debug-flag` is non-nil."
   (when page-view-debug-flag
-     (page-view-debug-overlay height cumulative)))
+     (page-view-debug-overlay height cumulative last-fn-index)))
 
 
 (defun page-view-setup()
@@ -281,8 +281,7 @@ the Olivetti fringe style."
       (setq page-view-cache-invalid-from
             (min (or page-view-cache-invalid-from 1) line)
             ))
-    
-    ))
+    (org-inline-fn--process-region beg end (or(page-view--get-line-metadata 'org-inline-fn-last-index (1-(line-number-at-pos))) 0))))
 
 (defun page-view-reflow-screen ()
   "Apply pagebreaks on region currently visible in window"
@@ -414,6 +413,7 @@ CUMULATIVE-HEIGHT + LINE-HEIGHT. TODO make into a macro"
 
   ;; logic: if the end of our previous physical line is on a different page
   ;; than the end of this phyical line, there's a page break here
+  (setq cumulative-height (or cumulative-height 0))
   (let* ((previous-visual-line cumulative-height ) 
          (last-line (+ cumulative-height line-height)) 
          (previous-page (/ previous-visual-line page-view-lines-per-page))
@@ -592,13 +592,15 @@ LINE is the 1-based line number (defaults to the current line)."
                     (beginning-of-line)
                     (point)))
            (end (line-end-position))
+           ;; TODO should we only call --proces-region on change... ?
+           (_ (org-inline-fn--process-region start end (or(page-view--get-line-metadata 'org-inline-fn-last-index (1-(line-number-at-pos))) 0)) )
            ;; base line height including wrapping
            (base-height (if (= start end)
                             1
                           (count-screen-lines start end)))
            ;; sum of footnote heights on this line
-           ;; NOTE: line counts are approximate, and are not adjusted
-           ;; based on relative font size
+           ;; NOTE: footnote line counts are approximate, and are not
+           ;; adjusted based on relative font size
            ;; TODO : there may be a bug moving to target-line
            ;; if a pagebreak falls in a paragraph with long footnotes
            (fn-height (apply #'+
@@ -632,6 +634,29 @@ LINE is 1-based and defaults to the current line."
 Set by `page-view-handle-change` and used for incremental recomputation.")
 
 
+(defun page-view--set-line-metadata (symbol value &optional line)
+
+  (save-excursion
+    ;; navigate if line number is given
+    (when line
+      (goto-char (point-min))
+      (forward-line (1- line)))
+    ;; ensure we are at beginning of line
+    (beginning-of-line)
+    (put-text-property (point) (min (1+ (point)) (point-max)) ;; see comment
+                       ;; page-view-get-cumulative-height
+                       symbol value)))
+
+(defun page-view--get-line-metadata (symbol &optional line)
+
+  (save-excursion
+    ;; navigate if line number is given
+    (when line
+      (goto-char (point-min))
+      (forward-line (1- line)))
+    ;; ensure we are at beginning of line
+    (beginning-of-line)
+    (get-text-property (point) symbol )))
 
 (defun page-view-get-line-height (&optional line)
   "Return the cached visual height of a physical line.
@@ -690,7 +715,8 @@ LINE defaults to the current line. Uses and updates cached
 
           ;; Starting cumulative height.
           (let ((cumulative-height (or (get-text-property (point) 'page-view-cumulative-height)
-                                       0 ))) ;; we are on a cached line;
+                                       0 ));; we are on a cached line;
+                (last-fn-index (or (page-view--get-line-metadata 'org-inline-fn-last-index ) 0)))
 
             ;; if no cumulative-height is stored, we're either on line 1 or have somehow
             ;; wound up after the end of the cache. Apply page 1 header or walk-back a
@@ -701,16 +727,16 @@ LINE defaults to the current line. Uses and updates cached
                   ;; this is an error case... TODO should not happen, find out why
                   (progn
                   (forward-line -1)
-                  (setq cumulative-height (get-text-property (point) 'page-view-cumulative-height))
+                  (setq cumulative-height (or (get-text-property (point) 'page-view-cumulative-height) 0))
                   )
                 ))
 
 
-            (page-view-maybe-debug (page-view-get-line-height) cumulative-height)
+            (page-view-maybe-debug (page-view-get-line-height) cumulative-height last-fn-index)
             ;; Walk forward until reaching the requested line.
             (while (< (line-number-at-pos) line)
               (page-view-maybe-apply-pagebreak cumulative-height (page-view-get-line-height))
-              (page-view-maybe-debug (page-view-get-line-height) cumulative-height)
+              (page-view-maybe-debug (page-view-get-line-height) cumulative-height last-fn-index)
 
                                         ;(put-text-property (point) (1+ (point))
               (put-text-property (point) (min (1+ (point)) (point-max)) ;; if we're on a
