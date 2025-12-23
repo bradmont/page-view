@@ -194,11 +194,11 @@ Only footnotes strictly before LINE are considered valid."
     (beginning-of-line)
     (org-inline-fn--get-in-region ((point) (line-end-position)))))
   
-
 (defun org-inline-fn-get-in-region (beg end)
-  "Return a list of footnotes in region BEG to END."
+  "Return a list of footnotes in region BEG to END that have a 'fn-string property."
   (seq-filter (lambda (ov)
-                (eq (overlay-get ov 'footnote) t))
+                (and (eq (overlay-get ov 'footnote) t)
+                     (overlay-get ov 'fn-string)))
               (overlays-in beg end)))
 
 (defun org-inline-fn--delete-in-region (beg end)
