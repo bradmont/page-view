@@ -47,6 +47,9 @@
   "Face for inline footnote overlays, scaled and slanted, but copying page-view-body-face attributes.")
 
 
+(defvar org-inline-fn-regex
+  "\\[\\(?:fn::\\|cite:\\)\\(\\(?:[^][]\\|\\[[^]]*\\]\\)+\\)\\]"
+  "Regex matching inline footnotes or citations in org buffers.")
 
 
 
@@ -101,7 +104,7 @@
   (save-excursion
     (goto-char beg)
     (while (re-search-forward
-            "\\[\\(?:fn::\\|cite:\\)\\(\\(?:[^][]\\|\\[[^]]*\\]\\)+\\)\\]"
+            org-inline-fn-regex
             end t)
       (let* ((fn-index (1+ last-index ))
              (content (match-string 1))

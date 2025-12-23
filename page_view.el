@@ -271,7 +271,6 @@ the Olivetti fringe style."
 (defun page-view-handle-change (beg end _len)
   "Invalidate cached line-height properties for lines touched by the change."
   ;; Remove the 'line-height property from the changed region
-  ;(message "handle-change")
   (let ((inhibit-read-only t))
     (remove-text-properties beg (min (1+ end) (point-max)) '(page-view-line-height nil))
     ;; Optionally track the first invalidated line for incremental recalculation
@@ -279,7 +278,42 @@ the Olivetti fringe style."
       (setq page-view-cache-invalid-from
             (min (or page-view-cache-invalid-from 1) line))
       ;(message "process-region %d"  line)
-      (org-inline-fn--process-region beg end (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0)))))
+      
+      ;; TODO : figure out a good workflow for writing new footnotes. These two
+      ;; either: just let you write it as normal org-mode, or convert to
+      ;; footnote ASAP. In the first case, should apply-footnote after finishing
+      ;; (maybe on press ]?); the second should move to edit in the minibuffer.
+      ;; Maybe make the two options configurable.
+      ;; NOTE: for the moment, let's try -- input as in regular org-mode,
+      ;; but process previous line if chhange contains a \n -- so when paragraph is finished.
+      ;; works for writing new paragraphs, but not for editing existing ones
+      ;; (org-inline-fn--process-region beg end (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0))
+      ;;(org-inline-fn--process-line (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0))
+
+      (when (eq (char-before (point)) ?\]) ;; user typed ]
+        (let ((line-start (line-beginning-position))
+              (line-end   (point))) ; re-search-forward excludes end point
+          (when (save-excursion
+                  (goto-char line-start)
+                  (re-search-forward org-inline-fn-regex line-end t))
+            ;; inline fn just completed
+            (org-inline-fn--process-line (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0))
+            ))
+
+        )
+
+      (when (and (= _len 0)   ;; insertion, not deletion
+                 (string= (buffer-substring beg end) "\n"))
+        ;; user just inserted a newline
+        (message "newline inserted at %d" beg)
+        ;; your specific action here
+        ;; 
+        (save-excursion 
+          (forward-line -1)
+          (org-inline-fn--process-line (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0))
+          ))
+      (when (< _len 0))
+      )))
 
 (defun page-view-reflow-screen ()
   "Apply pagebreaks on region currently visible in window"
