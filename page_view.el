@@ -298,21 +298,19 @@ the Olivetti fringe style."
                   (re-search-forward org-inline-fn-regex line-end t))
             ;; inline fn just completed
             (org-inline-fn--process-line (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0))
-            ))
-
-        )
+            )))
 
       (when (and (= _len 0)   ;; insertion, not deletion
                  (string= (buffer-substring beg end) "\n"))
         ;; user just inserted a newline
-        (message "newline inserted at %d" beg)
         ;; your specific action here
         ;; 
         (save-excursion 
           (forward-line -1)
           (org-inline-fn--process-line (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0))
           ))
-      (when (< _len 0))
+      (when (> _len 0)
+          (org-inline-fn--process-line (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0)))
       )))
 
 (defun page-view-reflow-screen ()

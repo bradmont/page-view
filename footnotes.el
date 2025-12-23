@@ -150,13 +150,13 @@
                             (ceiling (/ (float pixels) line-width)))))
         ;; hide original
         (overlay-put hide-ov 'invisible t)
-        (put-text-property match-beg match-end 'read-only t)
+        ;(put-text-property match-beg match-end 'read-only t)
         (overlay-put hide-ov 'footnote t)
         (overlay-put hide-ov 'sup-ov sup-ov)
 
         ;; superscript overlay
         (overlay-put sup-ov 'after-string sup)
-        (overlay-put sup-ov 'read-only t)
+        ;(overlay-put sup-ov 'read-only t)
         (overlay-put sup-ov 'footnote t)
         (overlay-put sup-ov 'fn-index fn-index)
         (overlay-put sup-ov 'fn-string fn-string)
@@ -204,12 +204,19 @@ Only footnotes strictly before LINE are considered valid."
                      (overlay-get ov 'fn-string)))
               (overlays-in beg end)))
 
+(defun org-inline-fn-get-overlays-in-region (beg end)
+  "Return a list of footnotes in region BEG to END that have a 'fn-string property."
+  (seq-filter (lambda (ov)
+                (eq (overlay-get ov 'footnote) t)
+                     )
+              (overlays-in beg end)))
+
 (defun org-inline-fn--delete-in-region (beg end)
 
   (let ((inhibit-read-only t))
     (mapc (lambda (ov)
             (delete-overlay ov))
-            (org-inline-fn-get-in-region beg end))))
+            (org-inline-fn-get-overlays-in-region beg end))))
 
 
 
