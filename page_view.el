@@ -271,17 +271,15 @@ the Olivetti fringe style."
 (defun page-view-handle-change (beg end _len)
   "Invalidate cached line-height properties for lines touched by the change."
   ;; Remove the 'line-height property from the changed region
-  ;; 
-                                        ;(message "(page-view-handle-change %d %d %d)" beg end _len)
-                                        ;
+  ;(message "handle-change")
   (let ((inhibit-read-only t))
     (remove-text-properties beg (min (1+ end) (point-max)) '(page-view-line-height nil))
     ;; Optionally track the first invalidated line for incremental recalculation
     (let ((line (line-number-at-pos beg)))
       (setq page-view-cache-invalid-from
-            (min (or page-view-cache-invalid-from 1) line)
-            ))
-    (org-inline-fn--process-region beg end (or(page-view--get-line-metadata 'org-inline-fn-last-index (1-(line-number-at-pos))) 0))))
+            (min (or page-view-cache-invalid-from 1) line))
+      ;(message "process-region %d"  line)
+      (org-inline-fn--process-region beg end (or(page-view--get-line-metadata 'org-inline-fn-last-index (1- line)) 0)))))
 
 (defun page-view-reflow-screen ()
   "Apply pagebreaks on region currently visible in window"
