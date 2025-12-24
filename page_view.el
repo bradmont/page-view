@@ -19,8 +19,7 @@
 ;;; Code:
 
 (require 'olivetti)
-(load "~/src/page-view/footnotes.el")
-;(require 'org-inline-footnotes)
+(require 'org-inline-fn)
 
 
 (defcustom page-view-document-header-function
