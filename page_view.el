@@ -1,7 +1,7 @@
 ;;; page-view.el --- Simple page view -*- lexical-binding: t; -*-
 
 ;; Author: Brad Stewart
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((emacs "29.1") (olivetti "0"))
 ;; Keywords: style, editing, word processing
 ;; URL: https://github.com/bradmont/page-view

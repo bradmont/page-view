@@ -11,8 +11,33 @@ that approximate a letter-sized page using Times New Roman 12 point, at 1.5
 spacing. The package is built to work on top of [[https://github.com/rnkn/olivetti][olivetti-mode]], but it should
 be able to function without it with minimal changes.
 [[file:preview.gif]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
-Note that the purpose of the package is to look like a word processor for more comfortable writing, not to be a perfect layout engine for documents. Org-mode remains the underlying format, so for publication or printing, use org-export to LaTeX, odt, html, or some other format.
+Note that the purpose of the package is to *look like* a word processor for more comfortable writing, not to be a perfect layout engine for documents. Org-mode remains the underlying format, so for publication or printing, use org-export to LaTeX, odt, html, or some other format.
+
+* What's new?
+** v0.3
+I've added footnote functionality that applies to =[fn::Anonymous footnotes]= and =[cite:@bradmontPageView2025 p. 1;org-cite footnotes]=.
 
 * Installation  
   Clone or copy the file into your load path:
@@ -43,6 +68,8 @@ You can cutomize the following faces to adjust display to your preferences:
 
 =page-view-footer-face= and =page-view-header-face= : The faces the header and footer text (default to document title and page number) are displayed in.
 
+=org-inline-fn-overlay-face= styles footnotes.
+
 You can also customize =page-view-document-header-function= and =page-view-document-footer-function= to change the text of the headers and footers. They take two variables, PAGE and TARGET-VISUAL-LINE, which are the current page number and visual line where the pagebreak should be displayed (this second one is mainly used for debugging).
 
 * Incremental Updates  
@@ -57,7 +84,7 @@ Pagination updates occur:
   
 
 * Configuration  
-You can override or advise the function =page-view-setup= to change font parameters; if you're using olivetti-mode, =olivetti-body-width= determines the character width of the page; =page-view-lines-per-page= determines the size of a page.
+Using olivetti-mode, =olivetti-body-width= determines the character width of the page; =page-view-lines-per-page= determines the size of a page.
   
 Future versions aim to make these parameters fully customizable.
 
