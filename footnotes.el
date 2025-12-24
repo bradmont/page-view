@@ -43,7 +43,7 @@
        :inverse-video nil
        :weight normal
        :family unspecified
-       :inherit-shadow t)) ;; optional, may need :foreground "gray40" for subtle shadow
+       )) ;; optional, may need :foreground "gray40" for subtle shadow
   "Face for inline footnote overlays, scaled and slanted, but copying page-view-body-face attributes.")
 
 
@@ -162,7 +162,7 @@
         (overlay-put sup-ov 'fn-string fn-string)
         (overlay-put sup-ov 'fn-string-cookie fn-string)
         (overlay-put sup-ov 'fn-height fn-height)
-        (message "fontnote %d height %d last-index %d" fn-index fn-height last-index))))
+        )))
     (page-view--set-line-metadata 'org-inline-fn-last-index last-index))
 
 (defun org-inline-fn--invalidate-from-line (line)
